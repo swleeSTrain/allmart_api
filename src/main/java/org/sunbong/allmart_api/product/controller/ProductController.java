@@ -7,6 +7,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.sunbong.allmart_api.common.dto.PageRequestDTO;
 import org.sunbong.allmart_api.common.dto.PageResponseDTO;
+import org.sunbong.allmart_api.common.exception.CommonExceptions;
 import org.sunbong.allmart_api.product.dto.ProductAddDTO;
 import org.sunbong.allmart_api.product.dto.ProductEditDTO;
 import org.sunbong.allmart_api.product.dto.ProductListDTO;
@@ -38,8 +39,14 @@ public class ProductController {
     ) {
         log.info("=======Product List=======");
 
+        // 페이지 번호가 0보다 작으면 예외 발생
+        if (pageRequestDTO.getPage() < 0) {
+            throw CommonExceptions.LIST_ERROR.get();
+        }
+
         return ResponseEntity.ok(productService.list(pageRequestDTO));
     }
+
 
     // 등록
     @PostMapping(value = "add", consumes = { "multipart/form-data" })

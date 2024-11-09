@@ -37,11 +37,6 @@ public class ProductService {
     // 리스트
     public PageResponseDTO<ProductListDTO> list(PageRequestDTO pageRequestDTO) {
 
-        // 페이지 번호가 0보다 작으면 예외 발생
-        if (pageRequestDTO.getPage() < 0) {
-            throw CommonExceptions.LIST_ERROR.get();
-        }
-
         PageResponseDTO<ProductListDTO> result = productRepository.list(pageRequestDTO);
 
         return result;

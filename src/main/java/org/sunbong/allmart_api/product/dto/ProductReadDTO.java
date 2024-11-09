@@ -22,9 +22,6 @@ public class ProductReadDTO {
 
     private List<String> attachFiles;
 
-    // 카테고리 이름 추가
-    private String categoryName;
-
     private LocalDateTime createdDate;
     private LocalDateTime modifiedDate;
 }
