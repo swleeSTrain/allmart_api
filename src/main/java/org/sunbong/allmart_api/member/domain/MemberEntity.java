@@ -20,4 +20,6 @@ public class MemberEntity {
 
     private MemberRole role;
 
+    private String phoneNumber;
+
 }

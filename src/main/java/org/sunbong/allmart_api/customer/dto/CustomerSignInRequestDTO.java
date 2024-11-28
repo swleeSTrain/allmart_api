@@ -8,13 +8,9 @@ import lombok.NoArgsConstructor;
 
 @Data
 @Builder
-@AllArgsConstructor
 @NoArgsConstructor
-public class CustomerResponseDTO {
-
-    public String phoneNumber;
-    public String email;
-    public String name;
-    public int loyaltyPoint;
-
+@AllArgsConstructor
+public class CustomerSignInRequestDTO {
+    private String email;
+    private String phoneNumber;
 }

@@ -3,14 +3,21 @@ package org.sunbong.allmart_api.customer.repository.search;
 
 import com.querydsl.core.Tuple;
 import com.querydsl.jpa.JPQLQuery;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.repository.support.QuerydslRepositorySupport;
+import org.springframework.stereotype.Repository;
 import org.sunbong.allmart_api.common.dto.PageRequestDTO;
 import org.sunbong.allmart_api.common.dto.PageResponseDTO;
 import org.sunbong.allmart_api.customer.domain.Customer;
+import org.sunbong.allmart_api.customer.domain.CustomerLoginType;
 import org.sunbong.allmart_api.customer.domain.QCustomer;
 import org.sunbong.allmart_api.customer.dto.CustomerListDTO;
+import org.sunbong.allmart_api.customer.dto.CustomerResponseDTO;
 import org.sunbong.allmart_api.qrcode.domain.QQrCode;
 import org.sunbong.allmart_api.qrcode.domain.QrCode;
 
@@ -21,11 +28,15 @@ import java.util.stream.Collectors;
 
 
 @Log4j2
+
 public class CustomerSearchImpl extends QuerydslRepositorySupport  implements CustomerSearch {
 
     public CustomerSearchImpl() {
         super(Customer.class);
+
     }
+
+
 
     @Override
     public Page<Customer> list(Pageable pageable) {
@@ -117,6 +128,38 @@ public class CustomerSearchImpl extends QuerydslRepositorySupport  implements Cu
     public PageResponseDTO<CustomerListDTO> listByPhoneNumber(String phoneNumber, PageRequestDTO pageRequestDTO) {
         return null;
     }
+
+    @Override
+    public CustomerResponseDTO findByPhoneNumberOrEmail(String customerData, CustomerLoginType loginType) {
+
+        QCustomer customer = QCustomer.customer;
+        log.debug(this.getQuerydsl());
+        JPQLQuery<Customer> query = from(customer);
+
+        if (loginType == CustomerLoginType.PHONE) {
+            query.where(customer.phoneNumber.eq(customerData));
+        } else if (loginType == CustomerLoginType.SOCIAL) {
+            query.where(customer.email.eq(customerData));
+        } else {
+            throw new IllegalArgumentException("Invalid login type: " + loginType);
+        }
+
+        Customer result = query.fetchOne();
+
+        if (result != null) {
+            // Map the Customer entity to CustomerResponseDTO (you can use a mapper here)
+            return CustomerResponseDTO.builder()
+                    .email(result.getEmail())
+                    .phoneNumber(result.getPhoneNumber())
+                    .name(result.getName())
+                    .loyaltyPoint(result.getLoyaltyPoints())
+                    .build();
+
+        }
+
+        return null; // Or throw a custom exception if no result is found
+    }
+
 
 
 }
