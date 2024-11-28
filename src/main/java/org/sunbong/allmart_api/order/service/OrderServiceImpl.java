@@ -1,15 +1,19 @@
 package org.sunbong.allmart_api.order.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.sunbong.allmart_api.common.dto.PageRequestDTO;
 import org.sunbong.allmart_api.common.dto.PageResponseDTO;
+import org.sunbong.allmart_api.delivery.repository.DeliveryRepository;
+import org.sunbong.allmart_api.delivery.service.DeliveryService;
 import org.sunbong.allmart_api.order.domain.OrderEntity;
 
 import org.sunbong.allmart_api.order.domain.OrderItem;
 import org.sunbong.allmart_api.order.domain.OrderStatus;
+import org.sunbong.allmart_api.order.dto.OrderDTO;
 import org.sunbong.allmart_api.order.dto.OrderItemDTO;
 import org.sunbong.allmart_api.order.dto.OrderListDTO;
 import org.sunbong.allmart_api.order.exception.OrderNotFoundException;
@@ -21,18 +25,20 @@ import org.sunbong.allmart_api.product.exception.ProductNotFoundException;
 import org.sunbong.allmart_api.product.repository.ProductRepository;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Log4j2
 public class OrderServiceImpl implements OrderService {
 
     private final OrderJpaRepository orderRepository;
     private final OrderItemJpaRepository orderItemRepository;
     private final ProductRepository productRepository;
-
+    private final DeliveryService deliveryService;
 
     @Override
     @Transactional(readOnly = true)
@@ -72,17 +78,35 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public void changeOrderStatus(Long orderId, OrderStatus newStatus) {
-
-        OrderEntity orderEntity = orderRepository.findById(orderId)
+        OrderEntity order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new OrderNotFoundException(orderId));
 
-        orderEntity.changeStatus(newStatus); // 상태 변경
+        // 단계별 로깅
+        log.info("Order Retrieved: {}", order);
+        log.info("Order CreatedDate Before Check: {}", order.getCreatedDate());
 
-        orderRepository.save(orderEntity);   // 변경 사항 저장
+        if (order.getCreatedDate() == null) {
+            throw new IllegalStateException("Order createdDate is null");
+        }
+
+
+        OrderEntity updatedOrder = order.changeStatus(newStatus);
+        orderRepository.save(updatedOrder);
+
+        log.info("Order CreatedDate After Save: {}", updatedOrder.getCreatedDate());
+
+        if (newStatus == OrderStatus.COMPLETED) {
+            LocalDateTime startTime = order.getCreatedDate().minusHours(2);
+            LocalDateTime endTime = order.getCreatedDate();
+
+            log.info("StartTime: {}, EndTime: {}", startTime, endTime);
+
+            deliveryService.processOrdersForDelivery(startTime, endTime);
+        }
     }
 
     @Override
-    public void createOrderFromVoice(String name, int quantity, String userId) {
+    public OrderDTO createOrderFromVoice(String name, int quantity, String userId) {
         if (name == null || name.trim().isEmpty()) {
             throw new IllegalArgumentException("Product name cannot be empty");
         }
@@ -114,6 +138,25 @@ public class OrderServiceImpl implements OrderService {
 
         // OrderItem 저장
         orderItemRepository.save(orderItem);
+
+        // OrderItem -> OrderItemDTO 변환
+        OrderItemDTO orderItemDTO = OrderItemDTO.builder()
+                .orderItemId(orderItem.getOrderItemID())
+                .productId(product.getProductID())
+                .productName(product.getName())
+                .unitPrice(product.getPrice())
+                .quantity(quantity)
+                .build();
+
+        // OrderEntity -> OrderDTO 변환
+        return OrderDTO.builder()
+                .orderId(order.getOrderID())
+                .customerId(order.getCustomerId())
+                .totalAmount(order.getTotalAmount())
+                .status(order.getStatus().name())
+                .orderTime(order.getCreatedDate())
+                .orderItems(List.of(orderItemDTO)) // 단일 항목 포함
+                .build();
     }
 
 
@@ -123,15 +166,18 @@ public class OrderServiceImpl implements OrderService {
                 .map(OrderItem::getTotalPrice)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
+    @Override
+    public List<OrderDTO> getCustomerCompletedOrders(String customerId) {
+        List<OrderEntity> completedOrders = orderRepository.findByCustomerIdAndStatus(customerId, OrderStatus.COMPLETED);
 
-//    private OrderListDTO convertToDTO(OrderEntity orderEntity) {
-//        return OrderListDTO.builder()
-//                .orderId(orderEntity.getOrderID())
-//                .customerId(orderEntity.getCustomerId())
-//                .totalAmount(orderEntity.getTotalAmount())
-//                .status(orderEntity.getStatus())
-//                .orderTime(orderEntity.getCreatedDate())
-//                .build();
-//    }
-
+        return completedOrders.stream()
+                .map(order -> OrderDTO.builder()
+                        .orderId(order.getOrderID())
+                        .customerId(order.getCustomerId())
+                        .totalAmount(order.getTotalAmount())
+                        .status(order.getStatus().name())
+                        .orderTime(order.getCreatedDate())
+                        .build())
+                .collect(Collectors.toList());
+    }
 }

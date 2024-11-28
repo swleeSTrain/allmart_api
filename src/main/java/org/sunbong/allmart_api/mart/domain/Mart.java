@@ -12,7 +12,7 @@ import java.util.List;
 @Entity
 @Table(name = "tbl_mart")
 @Getter
-@Builder
+@Builder(toBuilder = true)
 @AllArgsConstructor
 @NoArgsConstructor
 @ToString(exclude = {"attachLogo"})
@@ -49,6 +49,10 @@ public class Mart extends BaseEntity {
 
     public void addLogo(String filename) {
         attachLogo.add(new MartLogo(filename, attachLogo.size()));
+    }
+
+    public void clearLogo() {
+        attachLogo.clear();
     }
 
     public void softDelete() {

@@ -39,7 +39,7 @@ class OrderServiceImplTest {
         orderItemRepository = mock(OrderItemJpaRepository.class);
         productRepository = mock(ProductRepository.class);
         fakeOrderSearch = mock(FakeOrderSearch.class);
-        orderService = new OrderServiceImpl(orderRepository, orderItemRepository, productRepository); // 두 개의 mock 객체 주입
+//        orderService = new OrderServiceImpl(orderRepository, orderItemRepository, productRepository); // 두 개의 mock 객체 주입
     }
 
     @Test

@@ -17,4 +17,5 @@ public class CustomerRegisterDTO {
     private String roadAddress; // 도로명 주소
     private String detailAddress; // 상세 주소
     private String fullAddress;  // 전체 주소
+    private Long martID;
 }

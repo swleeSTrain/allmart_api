@@ -11,9 +11,13 @@ import org.sunbong.allmart_api.common.dto.PageRequestDTO;
 import org.sunbong.allmart_api.common.dto.PageResponseDTO;
 import org.sunbong.allmart_api.order.domain.OrderStatus;
 import org.sunbong.allmart_api.order.dto.NaverChatbotOrderDTO;
+import org.sunbong.allmart_api.order.dto.OrderDTO;
 import org.sunbong.allmart_api.order.dto.OrderItemDTO;
 import org.sunbong.allmart_api.order.dto.OrderListDTO;
 import org.sunbong.allmart_api.order.service.OrderService;
+
+import java.time.LocalDateTime;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/orders")
@@ -54,8 +58,6 @@ public class OrderController {
     // 주문 생성 (음성 주문 처리)
     @PostMapping("/voice")
     public ResponseEntity<String> createOrder(@RequestBody NaverChatbotOrderDTO naverChatbotOrderDTO) {
-        String productName = null;
-        int quantity = 0;
         log.info("++++++++++++++++++++++++++++++++++++++++++=");
         log.info(naverChatbotOrderDTO.toString());
         log.info("++++++++++++++++++++++++++++++++++++++++++=");
@@ -65,5 +67,11 @@ public class OrderController {
         log.info("+++++++++++++++++++++++++++++++++++++++++++");
 
         return ResponseEntity.ok("Order created successfully.");
+    }
+
+    @GetMapping("/customer/{customerId}/completed")
+    public ResponseEntity<List<OrderDTO>> getCompletedOrdersByCustomer(@PathVariable String customerId) {
+        List<OrderDTO> completedOrders = orderService.getCustomerCompletedOrders(customerId);
+        return ResponseEntity.ok(completedOrders);
     }
 }

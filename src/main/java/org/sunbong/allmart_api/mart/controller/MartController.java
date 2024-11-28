@@ -9,10 +9,9 @@ import org.sunbong.allmart_api.common.dto.PageRequestDTO;
 import org.sunbong.allmart_api.common.dto.PageResponseDTO;
 import org.sunbong.allmart_api.common.exception.CommonExceptions;
 import org.sunbong.allmart_api.mart.dto.MartAddDTO;
+import org.sunbong.allmart_api.mart.dto.MartEditDTO;
 import org.sunbong.allmart_api.mart.dto.MartListDTO;
 import org.sunbong.allmart_api.mart.service.MartService;
-import org.sunbong.allmart_api.product.dto.ProductAddDTO;
-import org.sunbong.allmart_api.product.dto.ProductListDTO;
 
 @RestController
 @RequestMapping("/api/v1/mart")
@@ -50,5 +49,27 @@ public class MartController {
         return ResponseEntity.ok(id);
     }
 
+    // 소프트삭제
+    @DeleteMapping("/{martID}")
+    public ResponseEntity<Long> delete(@PathVariable Long martID) {
 
+        log.info("=======Product Delete: {} =======", martID);
+
+        Long deletedID = martService.delete(martID);
+
+        return ResponseEntity.ok(deletedID);
+    }
+
+    // 수정
+    @PutMapping("/{martID}")
+    public ResponseEntity<Long> edit(
+            @PathVariable Long martID,
+            @ModelAttribute MartEditDTO dto) throws Exception {
+
+        log.info("=======Product Update: {} =======", martID);
+
+        Long updatedID = martService.edit(martID, dto);
+
+        return ResponseEntity.ok(updatedID);
+    }
 }

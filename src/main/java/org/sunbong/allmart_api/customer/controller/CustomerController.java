@@ -192,7 +192,7 @@ public class CustomerController {
     // 새로운 고객 및 주소 등록 로직
     @PostMapping("/register")
     public ResponseEntity<String> registerCustomer(@RequestBody CustomerRegisterDTO customerRegisterDTO) {
-        Customer registeredCustomer = customerService.registerCustomerWithAddress(customerRegisterDTO);
+        Customer registeredCustomer = customerService.registerCustomer(customerRegisterDTO);
         log.info("Customer and Address registered successfully: {}", registeredCustomer);
         return ResponseEntity.ok("Customer and Address registered successfully!");
     }

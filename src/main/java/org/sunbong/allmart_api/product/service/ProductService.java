@@ -52,8 +52,6 @@ public class ProductService {
     // 등록
     public Long register(ProductAddDTO dto) throws Exception {
 
-        // 중복 체크
-        validateDuplicate(dto.getName());
 
         // 카테고리 ID로 카테고리 찾기
         Category category = categoryRepository.findById(dto.getCategoryID())

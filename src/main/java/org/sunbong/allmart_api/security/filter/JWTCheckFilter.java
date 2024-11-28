@@ -13,7 +13,6 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
-import org.sunbong.allmart_api.security.auth.CustomerPrincipal;
 import org.sunbong.allmart_api.security.auth.CustomuserPrincipal;
 import org.sunbong.allmart_api.security.util.JWTUtil;
 
@@ -41,16 +40,15 @@ public class JWTCheckFilter extends OncePerRequestFilter {
             return true;
         }
 
+        if (uri.startsWith("/api/v1/mart")) {
+            return true;
+        }
+
         log.info("----------------------------------");
         if(uri.equals("/api/v1/member/makeToken") ||
                 uri.equals("/api/v1/member/refreshToken") ||
-                uri.equals("/api/v1/member/signUp")||
-                uri.startsWith("/api/v1/qrcode")||
-                // "/"동적으로 오는 @PathVariable 값 처리 부분
-                uri.startsWith("/api/v1/customer")){
-
-            // 회원가입 엔드포인트 추가
-
+                uri.equals("/api/v1/member/signUp")) // 회원가입 엔드포인트 추가
+        {
             return true;
         }
 
@@ -88,7 +86,6 @@ public class JWTCheckFilter extends OncePerRequestFilter {
 
             String email = (String) claims.get("email");
             String role = (String) claims.get("role");
-
 
             Principal userPrincipal = new CustomuserPrincipal(email);
 
