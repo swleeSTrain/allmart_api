@@ -55,9 +55,11 @@ public class Customer extends BaseEntity implements UserDetails {
         return "";
     }
 
-
     @Override
     public String getUsername() {
         return (loginType == CustomerLoginType.PHONE) ? phoneNumber : email;
     }
+
+
+
 }
