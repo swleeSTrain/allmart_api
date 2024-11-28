@@ -3,6 +3,7 @@ package org.sunbong.allmart_api.address.domain;
 import jakarta.persistence.*;
 import lombok.*;
 import org.sunbong.allmart_api.common.domain.BaseEntity;
+import org.sunbong.allmart_api.customer.domain.Customer;
 
 @Entity
 @Table(name = "tbl_address")
@@ -27,6 +28,10 @@ public class Address extends BaseEntity {
 
     @Column(length = 500)
     private String fullAddress; // 전체 주소 (도로명 주소 + 상세 주소)
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "customerID", nullable = false)
+    private Customer customer; // 단방향 관계 설정
 
 
 }

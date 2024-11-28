@@ -11,4 +11,6 @@ public class MemberDTO {
 
     private String role;
 
+    private Long martID;
+
 }

@@ -38,10 +38,20 @@ public class Mart extends BaseEntity {
     @Column(name = "certificate", length = 255, nullable = false)
     private String certificate; // 사업자등록증
 
+    @Builder.Default
+    private boolean delFlag = false;
+
     @ElementCollection
     @CollectionTable(name = "tbl_mart_logo")
     @BatchSize(size = 50)
     @Builder.Default
     private List<MartLogo> attachLogo = new ArrayList<>();
 
+    public void addLogo(String filename) {
+        attachLogo.add(new MartLogo(filename, attachLogo.size()));
+    }
+
+    public void softDelete() {
+        this.delFlag = true;
+    }
 }

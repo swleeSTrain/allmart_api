@@ -89,8 +89,6 @@ public class ProductSearchImpl extends QuerydslRepositorySupport implements Prod
                 .build();
     }
 
-
-
     public ProductReadDTO readById(Long productID) {
 
         log.info("-------------------read----------");

@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.sunbong.allmart_api.member.dto.MemberDTO;
+import org.sunbong.allmart_api.member.dto.MemberMartDTO;
 import org.sunbong.allmart_api.member.dto.TokenRequestDTO;
 import org.sunbong.allmart_api.member.dto.TokenResponseDTO;
 import org.sunbong.allmart_api.member.exception.MemberExceptions;
@@ -35,6 +36,15 @@ public class MemberController {
 
     @Value("${org.allmart_api.alwaysNew}")
     private boolean alwaysNew;
+
+    @GetMapping("/mart/{email}")
+    public ResponseEntity<MemberMartDTO> getMartInfo(
+            @PathVariable("email") String email
+    ) {
+        log.info("======= Fetching Mart Info for Email: {} =======", email);
+
+        return ResponseEntity.ok(memberService.martInfo(email));
+    }
 
     @PostMapping("makeToken")
     public ResponseEntity<TokenResponseDTO> makeToken(@RequestBody @Validated TokenRequestDTO tokenRequestDTO) {

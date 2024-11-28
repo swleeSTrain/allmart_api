@@ -13,4 +13,5 @@ public class MartLogo {
     @Column(name = "logoURL", length = 255, nullable = false)
     private String logoURL; // 로고 URL
 
+    int ord;
 }

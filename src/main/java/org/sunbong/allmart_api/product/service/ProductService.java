@@ -165,8 +165,10 @@ public class ProductService {
     // 중복 체크
     private void validateDuplicate(String name) throws Exception {
 
-        // 409 상태 코드 반환
-        throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 존재하는 상품입니다: " + name);
+        if (productRepository.findByName(name).isPresent()) {
+            // 409 상태 코드 반환
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 존재하는 상품입니다: " + name);
+        }
     }
 
 
