@@ -1,6 +1,5 @@
 package org.sunbong.allmart_api.customer.service;
 
-import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -9,7 +8,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.sunbong.allmart_api.address.domain.Address;
 import org.sunbong.allmart_api.address.dto.AddressDTO;
 import org.sunbong.allmart_api.address.repository.AddressRepository;
 import org.sunbong.allmart_api.address.service.AddressService;
@@ -17,14 +15,13 @@ import org.sunbong.allmart_api.customer.domain.Customer;
 import org.sunbong.allmart_api.customer.domain.CustomerLoginType;
 import org.sunbong.allmart_api.customer.dto.*;
 import org.sunbong.allmart_api.customer.exception.CustomerExceptions;
-import org.sunbong.allmart_api.customer.domain.CustomerMart;
+import org.sunbong.allmart_api.mart.domain.MartCustomer;
 import org.sunbong.allmart_api.customer.dto.CustomerListDTO;
 import org.sunbong.allmart_api.customer.dto.CustomerRegisterDTO;
 import org.sunbong.allmart_api.customer.dto.CustomerRequestDTO;
 import org.sunbong.allmart_api.customer.dto.CustomerUpdateDTO;
-import org.sunbong.allmart_api.customer.repository.CustomerMartRepository;
+import org.sunbong.allmart_api.mart.repository.MartCustomerRepository;
 import org.sunbong.allmart_api.customer.repository.CustomerRepository;
-import org.sunbong.allmart_api.customer.repository.search.CustomerSearch;
 import org.sunbong.allmart_api.security.util.JWTUtil;
 import org.sunbong.allmart_api.mart.domain.Mart;
 import org.sunbong.allmart_api.mart.repository.MartRepository;
@@ -46,7 +43,7 @@ public class CustomerService {
     private final AddressService addressService;
     private final AddressRepository addressRepository;
     private final MartRepository martRepository;
-    private final CustomerMartRepository customerMartRepository;
+    private final MartCustomerRepository martCustomerRepository;
 
     // 구조를 똑같이 가줘야 함 다른 것들은 Repository로 받아옴
     // 이것 때문에 꼬이는 문제 발생 전부 Repository로 통일해야함
@@ -167,7 +164,7 @@ public class CustomerService {
         Customer customer = Customer.builder()
                 .name(customerRegisterDTO.getName())
                 .phoneNumber(customerRegisterDTO.getPhoneNumber())
-                .loginType(CustomerLoginType.PHONE)
+                .loginType(CustomerLoginType.PHONE) // 로그인 타입 설정
                 .build();
         Customer savedCustomer = customerRepository.save(customer);
 
@@ -187,11 +184,11 @@ public class CustomerService {
         Mart mart = martRepository.findById(customerRegisterDTO.getMartID())
                 .orElseThrow(() -> new IllegalArgumentException("Invalid Mart ID: " + customerRegisterDTO.getMartID()));
 
-        CustomerMart customerMart = CustomerMart.builder()
+        MartCustomer martCustomer = MartCustomer.builder()
                 .mart(mart)
                 .customer(savedCustomer)
                 .build();
-        customerMartRepository.save(customerMart);
+        martCustomerRepository.save(martCustomer);
 
         // 4. 저장된 Customer 반환
         return savedCustomer;

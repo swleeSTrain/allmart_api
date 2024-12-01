@@ -9,6 +9,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.support.QuerydslRepositorySupport;
 import org.sunbong.allmart_api.common.dto.PageRequestDTO;
 import org.sunbong.allmart_api.common.dto.PageResponseDTO;
+import org.sunbong.allmart_api.mart.domain.QMartProduct;
 import org.sunbong.allmart_api.product.domain.Product;
 import org.sunbong.allmart_api.product.domain.QProduct;
 import org.sunbong.allmart_api.product.domain.QProductImage;
@@ -26,7 +27,7 @@ public class ProductSearchImpl extends QuerydslRepositorySupport implements Prod
     }
 
     @Override
-    public PageResponseDTO<ProductListDTO> list(PageRequestDTO pageRequestDTO) {
+    public PageResponseDTO<ProductListDTO> list(Long martID, PageRequestDTO pageRequestDTO) {
         log.info("-------------------list----------");
 
         Pageable pageable = PageRequest.of(
@@ -37,6 +38,7 @@ public class ProductSearchImpl extends QuerydslRepositorySupport implements Prod
 
         QProduct product = QProduct.product;
         QProductImage attachFile = QProductImage.productImage;
+        QMartProduct martProduct = QMartProduct.martProduct;
 
         BooleanBuilder builder = new BooleanBuilder();
         String keyword = pageRequestDTO.getKeyword();
@@ -60,7 +62,8 @@ public class ProductSearchImpl extends QuerydslRepositorySupport implements Prod
         // 엔티티 조회
         JPQLQuery<Product> query = from(product)
                 .join(product.attachImages, attachFile) // 필수 항목이면 join
-                .where(builder)
+                .leftJoin(martProduct).on(martProduct.product.eq(product)) // 시스템 관리자 예외
+                .where(builder) // 필터 조건 적용
                 .where(attachFile.ord.eq(0)) // 첫 번째 첨부파일만 가져오기
                 .where(product.delFlag.eq(false))
                 .groupBy(product);
@@ -89,16 +92,19 @@ public class ProductSearchImpl extends QuerydslRepositorySupport implements Prod
                 .build();
     }
 
-    public ProductReadDTO readById(Long productID) {
+    public ProductReadDTO readById(Long martID, Long productID) {
 
         log.info("-------------------read----------");
 
         QProduct product = QProduct.product;
         QProductImage attachFile = QProductImage.productImage;
+        QMartProduct martProduct = QMartProduct.martProduct;
 
         JPQLQuery<Product> query = from(product)
                 .leftJoin(product.attachImages, attachFile).fetchJoin()
-                .where(product.productID.eq(productID))
+                .leftJoin(martProduct).on(martProduct.product.eq(product))
+                .where(martProduct.mart.martID.eq(martID))  // 마트 ID 조건 추가
+                .where(product.productID.eq(productID))    // 상품 ID 조건
                 .where(product.delFlag.eq(false));
 
         Product result = query.fetchOne();

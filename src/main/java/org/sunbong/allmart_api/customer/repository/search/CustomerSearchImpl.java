@@ -3,19 +3,16 @@ package org.sunbong.allmart_api.customer.repository.search;
 
 import com.querydsl.core.Tuple;
 import com.querydsl.jpa.JPQLQuery;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.repository.support.QuerydslRepositorySupport;
-import org.springframework.stereotype.Repository;
 import org.sunbong.allmart_api.common.dto.PageRequestDTO;
 import org.sunbong.allmart_api.common.dto.PageResponseDTO;
 import org.sunbong.allmart_api.customer.domain.*;
 import org.sunbong.allmart_api.customer.dto.CustomerListDTO;
 import org.sunbong.allmart_api.customer.dto.CustomerResponseDTO;
+import org.sunbong.allmart_api.mart.domain.MartCustomer;
+import org.sunbong.allmart_api.mart.domain.QMartCustomer;
 import org.sunbong.allmart_api.qrcode.domain.QQrCode;
 import org.sunbong.allmart_api.qrcode.domain.QrCode;
 
@@ -37,18 +34,18 @@ public class CustomerSearchImpl extends QuerydslRepositorySupport  implements Cu
     @Override
     public Optional<CustomerResponseDTO> findCustomerWithMart(String userData, CustomerLoginType loginType) {
         QCustomer customer = QCustomer.customer;
-        QCustomerMart customerMart = QCustomerMart.customerMart;
+        QMartCustomer martCustomer = QMartCustomer.martCustomer;
 
         // CustomerMart를 기준으로 고객 정보와 관련된 Mart를 가져오는 쿼리
-        JPQLQuery<CustomerMart> query = from(customerMart)
-                .leftJoin(customerMart.customer, customer)
+        JPQLQuery<MartCustomer> query = from(martCustomer)
+                .leftJoin(martCustomer.customer, customer)
                 .where(
                         loginType == CustomerLoginType.PHONE
                                 ? customer.phoneNumber.eq(userData)
                                 : customer.email.eq(userData)
                 );
 
-        CustomerMart result = query.fetchOne();
+        MartCustomer result = query.fetchOne();
 
         if (result == null) {
             return Optional.empty();

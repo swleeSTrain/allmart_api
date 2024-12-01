@@ -11,6 +11,7 @@ import org.sunbong.allmart_api.common.exception.CommonExceptions;
 import org.sunbong.allmart_api.mart.dto.MartAddDTO;
 import org.sunbong.allmart_api.mart.dto.MartEditDTO;
 import org.sunbong.allmart_api.mart.dto.MartListDTO;
+import org.sunbong.allmart_api.mart.dto.MartReadDTO;
 import org.sunbong.allmart_api.mart.service.MartService;
 
 @RestController
@@ -21,7 +22,17 @@ public class MartController {
 
     private final MartService martService;
 
-    // 목록
+    // 조회
+    @GetMapping("/{martID}")
+    public ResponseEntity<MartReadDTO> readById(
+            @PathVariable("martID") Long martID
+    ) {
+        log.info("=======Product ReadById: {} =======", martID);
+
+        return ResponseEntity.ok(martService.readById(martID));
+    }
+
+    // 리스트
     @GetMapping("list")
     public ResponseEntity<PageResponseDTO<MartListDTO>> list(
             @Validated PageRequestDTO pageRequestDTO

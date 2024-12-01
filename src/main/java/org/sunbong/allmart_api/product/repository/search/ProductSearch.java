@@ -7,8 +7,8 @@ import org.sunbong.allmart_api.product.dto.ProductReadDTO;
 
 public interface ProductSearch {
 
-    PageResponseDTO<ProductListDTO> list(PageRequestDTO pageRequestDTO);
+    PageResponseDTO<ProductListDTO> list(Long martID, PageRequestDTO pageRequestDTO);
 
-    ProductReadDTO readById(Long productID);
+    ProductReadDTO readById(Long martID, Long productID);
 
 }

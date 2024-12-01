@@ -13,6 +13,7 @@ import org.sunbong.allmart_api.mart.domain.Mart;
 import org.sunbong.allmart_api.mart.domain.QMart;
 import org.sunbong.allmart_api.mart.domain.QMartLogo;
 import org.sunbong.allmart_api.mart.dto.MartListDTO;
+import org.sunbong.allmart_api.mart.dto.MartReadDTO;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -44,6 +45,9 @@ public class MartSearchImpl extends QuerydslRepositorySupport implements MartSea
             if (type.contains("martName")) {
                 builder.or(mart.martName.containsIgnoreCase(keyword));
             }
+            if (type.contains("phoneNumber")) {
+                builder.or(mart.phoneNumber.containsIgnoreCase(keyword));
+            }
         }
 
         JPQLQuery<Mart> query = from(mart)
@@ -51,8 +55,7 @@ public class MartSearchImpl extends QuerydslRepositorySupport implements MartSea
                 .where(builder)
                 .where(attachLogo.ord.eq(0))
                 .where(mart.delFlag.eq(false))
-                .groupBy(mart)
-                ;
+                .groupBy(mart);
 
         // 페이징 적용
         getQuerydsl().applyPagination(pageable, query);
@@ -75,6 +78,41 @@ public class MartSearchImpl extends QuerydslRepositorySupport implements MartSea
                 .dtoList(dtoList)
                 .totalCount(total)
                 .pageRequestDTO(pageRequestDTO)
+                .build();
+    }
+
+    public MartReadDTO readById(Long martID) {
+
+        log.info("-------------------read----------");
+
+        QMart mart = QMart.mart;
+        QMartLogo logo = QMartLogo.martLogo;
+
+        JPQLQuery<Mart> query = from(mart)
+                .leftJoin(mart.attachLogo, logo).fetchJoin()
+                .where(mart.martID.eq(martID))
+                .where(mart.delFlag.eq(false));
+
+        Mart result = query.fetchOne();
+
+        if (result == null) {
+            return null;
+        }
+
+        // DTO 변환 (attachLogo의 파일 이름을 문자열 리스트로 변환)
+        List<String> attachLogo = result.getAttachLogo().stream()
+                .map(file -> file.getLogoURL())
+                .collect(Collectors.toList());
+
+        return MartReadDTO.builder()
+                .martID(result.getMartID())
+                .martName(result.getMartName())
+                .phoneNumber(result.getPhoneNumber())
+                .address(result.getAddress())
+                .certificate(result.getCertificate())
+                .attachLogo(attachLogo)
+                .createdDate(result.getCreatedDate())
+                .modifiedDate(result.getModifiedDate())
                 .build();
     }
 }

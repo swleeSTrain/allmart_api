@@ -13,6 +13,10 @@ import org.sunbong.allmart_api.common.dto.PageResponseDTO;
 import org.sunbong.allmart_api.common.util.CustomFileUtil;
 import org.sunbong.allmart_api.inventory.domain.Inventory;
 import org.sunbong.allmart_api.inventory.repository.InventoryRepository;
+import org.sunbong.allmart_api.mart.domain.Mart;
+import org.sunbong.allmart_api.mart.domain.MartProduct;
+import org.sunbong.allmart_api.mart.repository.MartProductRepository;
+import org.sunbong.allmart_api.mart.repository.MartRepository;
 import org.sunbong.allmart_api.product.domain.Product;
 import org.sunbong.allmart_api.product.dto.ProductAddDTO;
 import org.sunbong.allmart_api.product.dto.ProductEditDTO;
@@ -31,27 +35,32 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final InventoryRepository inventoryRepository;
+    private final MartRepository martRepository;
+    private final MartProductRepository martProductRepository;
     private final CustomFileUtil fileUtil;
 
     // 조회
-    public ProductReadDTO readById(Long id) {
+    public ProductReadDTO readById(Long martID, Long productID) {
 
-        ProductReadDTO result = productRepository.readById(id);
+        ProductReadDTO result = productRepository.readById(martID, productID);
 
         return result;
     }
 
     // 리스트
-    public PageResponseDTO<ProductListDTO> list(PageRequestDTO pageRequestDTO) {
+    public PageResponseDTO<ProductListDTO> list(Long martID, PageRequestDTO pageRequestDTO) {
 
-        PageResponseDTO<ProductListDTO> result = productRepository.list(pageRequestDTO);
+        PageResponseDTO<ProductListDTO> result = productRepository.list(martID, pageRequestDTO);
 
         return result;
     }
 
     // 등록
-    public Long register(ProductAddDTO dto) throws Exception {
+    public Long register(Long martID, ProductAddDTO dto) throws Exception {
 
+        // 마트 조회하기
+        Mart mart = martRepository.findById(martID)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid mart ID"));
 
         // 카테고리 ID로 카테고리 찾기
         Category category = categoryRepository.findById(dto.getCategoryID())
@@ -74,6 +83,14 @@ public class ProductService {
         // Product 저장
         Product savedProduct = productRepository.save(product);
 
+        // MartProduct 엔티티 생성 및 저장
+        MartProduct martProduct = MartProduct.builder()
+                .mart(mart)
+                .product(savedProduct)
+                .build();
+
+        martProductRepository.save(martProduct);
+
         Inventory inventory = Inventory.builder()
                 .product(product)
                 .quantity(0) // 기본값으로 초기화
@@ -87,7 +104,7 @@ public class ProductService {
 
 
     // 소프트 삭제
-    public Long delete(Long id) {
+    public Long delete(Long martID, Long id) {
 
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Product not found with ID: " + id));
@@ -107,10 +124,10 @@ public class ProductService {
     }
 
     // 수정
-    public Long edit(Long id, ProductEditDTO dto) throws Exception {
+    public Long edit(Long martID, Long productID, ProductEditDTO dto) throws Exception {
 
         // 기존 상품 조회
-        Product existingProduct = productRepository.findById(id)
+        Product existingProduct = productRepository.findById(productID)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid product ID"));
 
         // 중복 체크
