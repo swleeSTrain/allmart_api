@@ -14,7 +14,7 @@ public class CustomerTokenResponseDTO {
     private String email;
     private String name;
     private String phoneNumber;
-    private Long customerId;
+    private Long customerID;
     private Long martID;
 
     private String accessToken;

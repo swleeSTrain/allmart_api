@@ -9,6 +9,8 @@ public class MemberDTO {
 
     private String pw;
 
+    private String phoneNumber;
+
     private String role;
 
     private Long martID;

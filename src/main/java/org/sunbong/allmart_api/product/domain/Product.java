@@ -16,7 +16,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
-@ToString(callSuper = true, exclude = {"attachImages"})
+@ToString(exclude = {"attachImages", "category"})
 public class Product extends BaseEntity {
 
     @Id

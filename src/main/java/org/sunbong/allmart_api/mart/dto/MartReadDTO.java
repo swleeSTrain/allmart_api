@@ -5,16 +5,23 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class MartListDTO {
+public class MartReadDTO {
 
     private Long martID;
     private String martName;
     private String phoneNumber;
     private String address;
+    private String certificate;
 
-    private String thumbnailImage; // 썸네일 이미지 URL
+    private List<String> attachLogo;
+
+    private LocalDateTime createdDate;
+    private LocalDateTime modifiedDate;
 }
