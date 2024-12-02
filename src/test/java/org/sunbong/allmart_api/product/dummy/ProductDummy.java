@@ -91,6 +91,7 @@ public class ProductDummy {
             Integer price = (Integer) productData.get("price");
             String fileUrl = (String) productData.get("file");
             Long categoryID = ((Number) productData.get("categoryID")).longValue();
+            Long martID = ((Number) productData.get("martID")).longValue();
 
             // MockMultipartFile 생성 (fileUrl에서 다운로드)
             MultipartFile mockFile = createMockMultipartFileFromUrl(fileUrl);
@@ -105,7 +106,7 @@ public class ProductDummy {
                     .build();
 
             // 상품 등록
-            Long productId = productService.register(dto);
+            Long productId = productService.register(martID, dto); // martID 추가
             assertNotNull(productId, "Product ID should not be null after registration");
         }
     }

@@ -2,11 +2,11 @@ package org.sunbong.allmart_api.security.auth;
 
 import java.security.Principal;
 
-public class CustomuserPrincipal implements Principal {
+public class MemberPrincipal implements Principal {
 
     private final String email;
 
-    public CustomuserPrincipal(final String email) {
+    public MemberPrincipal(final String email) {
         this.email = email;
     }
 

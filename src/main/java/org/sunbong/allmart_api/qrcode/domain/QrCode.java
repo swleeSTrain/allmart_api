@@ -4,6 +4,7 @@ package org.sunbong.allmart_api.qrcode.domain;
 import jakarta.persistence.*;
 import lombok.*;
 import org.sunbong.allmart_api.customer.domain.Customer;
+import org.sunbong.allmart_api.mart.domain.Mart;
 
 import java.time.LocalDateTime;
 
@@ -13,6 +14,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @ToString(exclude = "customer")
 @Getter
+@Table(name = "tbl_qrcode")
 public class QrCode {
 
     @Id
@@ -36,14 +38,15 @@ public class QrCode {
     private boolean isExpired;
 
     @Column(nullable = false)
-    @Enumerated
+    @Enumerated(EnumType.STRING)
     private QrCodeType qrCodeType;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customerID", referencedColumnName = "customerID", nullable = true)
     private Customer customer;
 
-
-
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "martID", referencedColumnName = "martID", nullable = true)
+    private Mart mart;
 
 }

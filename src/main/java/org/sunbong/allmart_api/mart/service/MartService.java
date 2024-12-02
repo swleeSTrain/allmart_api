@@ -11,9 +11,8 @@ import org.sunbong.allmart_api.mart.domain.Mart;
 import org.sunbong.allmart_api.mart.dto.MartAddDTO;
 import org.sunbong.allmart_api.mart.dto.MartEditDTO;
 import org.sunbong.allmart_api.mart.dto.MartListDTO;
+import org.sunbong.allmart_api.mart.dto.MartReadDTO;
 import org.sunbong.allmart_api.mart.repository.MartRepository;
-import org.sunbong.allmart_api.product.domain.Product;
-import org.sunbong.allmart_api.product.dto.ProductEditDTO;
 
 import java.util.List;
 
@@ -25,6 +24,14 @@ public class MartService {
 
     private final MartRepository martRepository;
     private final CustomFileUtil fileUtil;
+
+    // 조회
+    public MartReadDTO readById(Long id) {
+
+        MartReadDTO result = martRepository.readById(id);
+
+        return result;
+    }
 
     // 리스트
     public PageResponseDTO<MartListDTO> list(PageRequestDTO pageRequestDTO) {

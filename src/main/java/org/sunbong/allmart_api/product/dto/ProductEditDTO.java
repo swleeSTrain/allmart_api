@@ -23,4 +23,5 @@ public class ProductEditDTO {
     private List<String> existingFileNames;     // 기존 파일 이름
     private List<MultipartFile> files;  // 새로 업로드된 파일
 
+    private Long martID;
 }

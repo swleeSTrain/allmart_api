@@ -27,6 +27,8 @@ public class CustomSecurityConfig implements WebMvcConfigurer {
 
     private final JWTUtil jwtUtil;
 
+
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -43,6 +45,14 @@ public class CustomSecurityConfig implements WebMvcConfigurer {
 
 //        http.addFilterBefore(new JWTCheckFilter(jwtUtil), UsernamePasswordAuthenticationFilter.class);
 
+//        http.authorizeHttpRequests(authorize -> authorize
+//                .requestMatchers("/api/v1/customer/makeToken","/api/v1/customer/signUp/phoneNumber/**",
+//                        "/api/v1/qrcode/signUp", "/api/v1/customer/signIn", "/api/v1/customer/**").permitAll()
+//                .requestMatchers("/api/v1/**").hasRole("USER") // /api/v1/** 경로는 관리자 권한만 접근 가능
+//
+//
+//                .anyRequest().authenticated()
+//        );
         http.cors(cors -> cors.configurationSource(corsConfigurationSource()));
 
 //        http.authorizeHttpRequests(authorize -> authorize
@@ -70,6 +80,7 @@ public class CustomSecurityConfig implements WebMvcConfigurer {
         source.registerCorsConfiguration("/**", corsConfiguration);
 
         return source;
+
     }
 
     @Override
