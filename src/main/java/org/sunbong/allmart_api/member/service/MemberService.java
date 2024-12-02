@@ -63,6 +63,7 @@ public class MemberService {
         MemberEntity memberEntity = MemberEntity.builder()
                 .email(memberDTO.getEmail())
                 .pw(passwordEncoder.encode(memberDTO.getPw()))
+                .phoneNumber(memberDTO.getPhoneNumber())
                 .role(MemberRole.valueOf(memberDTO.getRole()))
                 .mart(mart)
                 .build();
