@@ -18,7 +18,7 @@ public class MemberEntity {
     @Column(length = 50, nullable = false)
     private String email;
 
-    @Column(length = 20, nullable = false)
+    @Column(length = 255, nullable = false)
     private String pw;
 
     @Column(nullable = false)

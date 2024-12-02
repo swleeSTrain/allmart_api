@@ -9,6 +9,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.support.QuerydslRepositorySupport;
 import org.sunbong.allmart_api.common.dto.PageRequestDTO;
 import org.sunbong.allmart_api.common.dto.PageResponseDTO;
+import org.sunbong.allmart_api.mart.domain.MartProduct;
 import org.sunbong.allmart_api.mart.domain.QMartProduct;
 import org.sunbong.allmart_api.product.domain.Product;
 import org.sunbong.allmart_api.product.domain.QProduct;
@@ -60,30 +61,33 @@ public class ProductSearchImpl extends QuerydslRepositorySupport implements Prod
         }
 
         // 엔티티 조회
-        JPQLQuery<Product> query = from(product)
-                .join(product.attachImages, attachFile) // 필수 항목이면 join
-                .leftJoin(martProduct).on(martProduct.product.eq(product)) // 시스템 관리자 예외
-                .where(builder) // 필터 조건 적용
-                .where(attachFile.ord.eq(0)) // 첫 번째 첨부파일만 가져오기
-                .where(product.delFlag.eq(false))
-                .groupBy(product);
+        JPQLQuery<MartProduct> query = from(martProduct)
+                .join(martProduct.product, product)
+                .join(product.attachImages, attachFile)
+                .where(martProduct.mart.martID.eq(martID)) // 마트 필터
+                .where(martProduct.delFlag.eq(false)) // 삭제되지 않은 MartProduct
+                .where(attachFile.ord.eq(0)) // 첫 번째 이미지
+                .where(builder); // 검색 조건
 
         // 페이징 적용
         getQuerydsl().applyPagination(pageable, query);
 
-        List<Product> productList = query.fetch();
+        List<MartProduct> martProductList = query.fetch();
         long total = query.fetchCount();
 
         // DTO 변환
-        List<ProductListDTO> dtoList = productList.stream()
-                .map(prod -> ProductListDTO.builder()
-                        .productID(prod.getProductID())
-                        .name(prod.getName())
-                        .sku(prod.getSku())
-                        .price(prod.getPrice())
-                        .thumbnailImage(prod.getAttachImages().isEmpty() ? null : prod.getAttachImages().get(0).getImageURL())
-                        .build()
-                ).collect(Collectors.toList());
+        List<ProductListDTO> dtoList = martProductList.stream()
+                .map(mp -> {
+                    Product prod = mp.getProduct();
+                    return ProductListDTO.builder()
+                            .productID(prod.getProductID())
+                            .name(prod.getName())
+                            .sku(prod.getSku())
+                            .price(prod.getPrice())
+                            .thumbnailImage(prod.getAttachImages().isEmpty() ? null : prod.getAttachImages().get(0).getImageURL())
+                            .build();
+                })
+                .collect(Collectors.toList());
 
         return PageResponseDTO.<ProductListDTO>withAll()
                 .dtoList(dtoList)

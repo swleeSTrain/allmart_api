@@ -116,6 +116,14 @@ public class ProductService {
             inventoryRepository.save(inventory);
         }
 
+        // 연관된 MartProduct 소프트 딜리트 처리
+        MartProduct martProduct = martProductRepository.findByMartMartIDAndProductProductID(martID, id);
+        if (martProduct != null) {
+            martProduct.softDelete(); // 삭제 플래그 설정
+            martProductRepository.save(martProduct);
+        }
+
+
         // Product 소프트 딜리트 처리
         product.softDelete();
         productRepository.save(product);
@@ -125,6 +133,10 @@ public class ProductService {
 
     // 수정
     public Long edit(Long martID, Long productID, ProductEditDTO dto) throws Exception {
+
+        // 마트 조회
+        Mart mart = martRepository.findById(martID)
+                .orElseThrow(() -> new IllegalArgumentException("Mart not found with ID: " + martID));
 
         // 기존 상품 조회
         Product existingProduct = productRepository.findById(productID)
@@ -163,7 +175,6 @@ public class ProductService {
             newFileNames.forEach(existingProduct::addImage);
         }
 
-
         // 상품 정보 업데이트
         Product updatedProduct = existingProduct.toBuilder()
                 .name(dto.getName() != null ? dto.getName() : existingProduct.getName())
@@ -174,8 +185,19 @@ public class ProductService {
         // 업데이트된 상품 저장
         productRepository.save(updatedProduct);
 
+        // 마트와의 연관을 처리
+        MartProduct martProduct = martProductRepository.findByMartMartIDAndProductProductID(martID, productID);
+        if (martProduct == null) {
+            martProduct = MartProduct.builder()
+                    .mart(mart)
+                    .product(updatedProduct)
+                    .build();
+            martProductRepository.save(martProduct);
+        }
+
         return updatedProduct.getProductID();
     }
+
 
     // 중복 체크
     private void validateDuplicate(String name) throws Exception {

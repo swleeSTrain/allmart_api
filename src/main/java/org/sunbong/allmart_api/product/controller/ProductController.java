@@ -34,7 +34,7 @@ public class ProductController {
     }
 
     // 목록
-    @GetMapping("/{martID}list")
+    @GetMapping("/{martID}/list")
     public ResponseEntity<PageResponseDTO<ProductListDTO>> list(
             @PathVariable("martID") Long martID,
             @Validated PageRequestDTO pageRequestDTO
