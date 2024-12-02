@@ -1,9 +1,11 @@
 spring:
   application:
     name: allmart_api
+
+
   datasource:
     driver-class-name: org.mariadb.jdbc.Driver
-#    url: jdbc:mariadb://localhost:13306/test
+#    url: jdbc:mariadb://localhost:13306/bootdb
     url: jdbc:mariadb://10.10.10.54:13306/vgdb
     username: vgdbuser
     password: vgdbuser
@@ -27,6 +29,11 @@ spring:
       max-file-size: 5MB
       max-request-size: 20MB
       location: ${org.allmart_api.upload.path}  # 업로드 경로를 org.sunbong.upload.path와 연동
+
+toss:
+  payments:
+    secret-key: test_sk_vZnjEJeQVxJxN0awRweO8PmOoBN0 # Toss Payments Secret Key
+    client-key: test_ck_ma60RZblrqR6ROZp0Bze8wzYWBn1 # Toss Payments Client Key
 
 org:
   allmart_api:
