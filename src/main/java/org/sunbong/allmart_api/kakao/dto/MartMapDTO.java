@@ -9,9 +9,10 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class MartLocationDTO {
+public class MartMapDTO {
 
-    private String addressName; // 도로명 주소
-    private double x; // 경도 (lng)
-    private double y; // 위도 (lat)
+    private Long martID;    // 마트 ID
+    private String martName; // 마트 이름
+    private double lat;      // 위도
+    private double lng;      // 경도
 }
