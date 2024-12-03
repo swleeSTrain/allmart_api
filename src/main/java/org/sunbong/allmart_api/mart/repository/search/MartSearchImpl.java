@@ -42,6 +42,10 @@ public class MartSearchImpl extends QuerydslRepositorySupport implements MartSea
         String type = pageRequestDTO.getType();
 
         if (keyword != null && type != null) {
+            if (type.contains("martID")) {
+                Long id = Long.parseLong(keyword); // keyword를 숫자로 변환
+                builder.or(mart.martID.eq(id)); // 숫자 필드에 대한 정확한 값 비교
+            }
             if (type.contains("martName")) {
                 builder.or(mart.martName.containsIgnoreCase(keyword));
             }

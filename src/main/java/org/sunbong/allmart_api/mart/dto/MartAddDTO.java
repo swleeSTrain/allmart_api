@@ -20,5 +20,7 @@ public class MartAddDTO {
     private String template;
     private String address;
     private String certificate;
+    private Double lat;
+    private Double lng;
     private List<MultipartFile> files;
 }
