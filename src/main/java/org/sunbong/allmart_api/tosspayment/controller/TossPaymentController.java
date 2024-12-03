@@ -9,30 +9,36 @@ import org.sunbong.allmart_api.tosspayment.dto.TossPaymentResponseDTO;
 import org.sunbong.allmart_api.tosspayment.dto.TossPaymentStatusUpdateDTO;
 import org.sunbong.allmart_api.tosspayment.service.TossPaymentService;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/v1/toss-payments")
 @RequiredArgsConstructor
 public class TossPaymentController {
 
     private final TossPaymentService tossPaymentService;
-    private final OrderJpaRepository orderJpaRepository;
-
 
     @PostMapping("/create")
     public ResponseEntity<TossPaymentResponseDTO> createTossPayment(
             @RequestBody TossPaymentCreateDTO request) {
-        // TossPayment 생성 요청
         TossPaymentResponseDTO response = tossPaymentService.createTossPayment(request);
         return ResponseEntity.ok(response);
     }
-
 
     @PatchMapping("/{id}/status")
     public ResponseEntity<?> updateTossPaymentStatus(
             @PathVariable Long id,
             @RequestBody TossPaymentStatusUpdateDTO request) {
-        // TossPayment 상태 업데이트 요청
         tossPaymentService.updateTossPaymentStatus(id, request.getStatus());
         return ResponseEntity.ok("Toss Payment status updated");
     }
+
+    @PostMapping("/confirm")
+    public ResponseEntity<TossPaymentResponseDTO> confirmPayment(
+            @RequestBody Map<String, String> requestBody) {
+        String paymentKey = requestBody.get("paymentKey");
+        return ResponseEntity.ok(tossPaymentService.confirmPayment(paymentKey));
+    }
+
+
 }

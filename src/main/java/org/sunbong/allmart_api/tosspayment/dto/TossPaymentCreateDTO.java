@@ -8,9 +8,9 @@ import java.math.BigDecimal;
 @Data
 @Builder
 public class TossPaymentCreateDTO {
-    private final Long orderId;
-    private final String paymentKey;
-    private final String method;
-    private final BigDecimal amount;
-    private final String receiptUrl;
+    private Long orderId;
+    private String paymentKey;
+    private String method;
+    private BigDecimal amount;
+    private String receiptUrl;
 }

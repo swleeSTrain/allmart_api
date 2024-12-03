@@ -8,11 +8,12 @@ import java.math.BigDecimal;
 @Data
 @Builder
 public class TossPaymentResponseDTO {
-    private final Long tossPaymentId;
-    private final Long orderId;
-    private final String paymentKey;
-    private final String method;
-    private final BigDecimal amount;
-    private final String status;
-    private final String receiptUrl;
+    private Long tossPaymentId;
+    private Long orderId;
+    private String paymentKey;
+    private String method;
+    private BigDecimal amount;
+    private String status;
+    private String receiptUrl;
 }
+

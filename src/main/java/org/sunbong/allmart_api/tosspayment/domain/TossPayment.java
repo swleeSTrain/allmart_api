@@ -12,32 +12,45 @@ import java.math.BigDecimal;
 @Table(name = "tbl_toss_payment", indexes = @Index(name = "idx_orderID", columnList = "orderID"))
 @Getter
 @Builder(toBuilder = true)
-@AllArgsConstructor
 @NoArgsConstructor
-@ToString(exclude = {"order"})
-public class TossPayment extends BaseEntity {
-
+@AllArgsConstructor
+public class TossPayment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(columnDefinition = "BIGINT")
     private Long tossPaymentID;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "orderID", nullable = false, columnDefinition = "BIGINT")
+    @JoinColumn(name = "orderID", nullable = false)
     private OrderEntity order;
 
     @Column(nullable = false)
-    private String paymentKey; // Toss Payments에서 제공하는 결제 키
+    private String paymentKey;
 
     @Column(nullable = false)
-    private String method; // Toss 결제 수단 (예: 카드, 계좌이체 등)
+    private String method;
 
     @Column(precision = 10, scale = 2, nullable = false)
-    private BigDecimal amount; // Toss 결제 금액
+    private BigDecimal amount;
 
     @Column(nullable = false)
-    private String status; // Toss 결제 상태 (예: PENDING, COMPLETED, FAILED 등)
+    @Enumerated(EnumType.STRING)
+    private PaymentStatus status;
 
     @Column(nullable = true)
-    private String receiptUrl; // Toss 결제 완료 후 제공되는 영수증 URL
+    private String receiptUrl;
+
+    public void changeStatus(PaymentStatus newStatus) {
+        if (this.status == PaymentStatus.COMPLETED) {
+            throw new IllegalStateException("Cannot change status from COMPLETED.");
+        }
+        this.status = newStatus;
+    }
+
+
+    public void completePayment(String method, BigDecimal amount, String receiptUrl) {
+        this.status = PaymentStatus.COMPLETED;
+        this.method = method;
+        this.amount = amount;
+        this.receiptUrl = receiptUrl;
+    }
 }
