@@ -27,9 +27,11 @@ public class Inventory extends BaseEntity {
     private Product product;
 
     @Column(name = "quantity", nullable = false)
+    @Builder.Default
     private Integer quantity = 0;
 
     @Column(name = "inStock", nullable = true)
+    @Builder.Default
     private Integer inStock = 1;
 
     @Builder.Default
