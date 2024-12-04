@@ -47,11 +47,9 @@ public class OrderEntity extends BaseEntity {
         return this; // 새 객체를 생성하지 않고 자기 자신 반환
     }
 
-
-    // 상태 변경 메서드
-    public OrderEntity changeStatusToCompleted() {
-        this.status = OrderStatus.COMPLETED;
-        return this;
+    // 총 금액 업데이트 메서드
+    public void updateTotalAmount(BigDecimal amount) {
+        this.totalAmount = amount;
     }
 
     public void assignDelivery(DeliveryEntity delivery) {
