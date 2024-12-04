@@ -7,6 +7,8 @@ import org.sunbong.allmart_api.mart.dto.MartReadDTO;
 
 public interface MartSearch {
 
+    PageResponseDTO<MartListDTO> listWithinRadius(PageRequestDTO pageRequestDTO, double lat, double lng, double radiusKm);
+
     PageResponseDTO<MartListDTO> list(PageRequestDTO pageRequestDTO);
 
     MartReadDTO readById(Long martID);
