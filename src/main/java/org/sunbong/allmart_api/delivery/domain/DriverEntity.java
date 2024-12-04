@@ -11,19 +11,14 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class DeliveryEntity {
+public class DriverEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "driver_id", nullable = false)
-    private DriverEntity driver;
+    @Column(nullable = false)
+    private String name;
 
     @Column(nullable = false)
-    private Long orderId;
-
-    @Enumerated(EnumType.STRING) // Enum을 문자열로 저장
-    @Column(nullable = false)
-    private DeliveryStatus status;
+    private int maxDeliveryCount; // 최대 처리 가능 주문 수
 }

@@ -1,186 +1,78 @@
 package org.sunbong.allmart_api.delivery.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.sunbong.allmart_api.delivery.domain.DeliveryEntity;
 import org.sunbong.allmart_api.delivery.domain.DeliveryStatus;
-import org.sunbong.allmart_api.delivery.dto.DeliveryDTO;
+import org.sunbong.allmart_api.delivery.domain.DriverEntity;
 import org.sunbong.allmart_api.delivery.repository.DeliveryRepository;
-import org.sunbong.allmart_api.order.domain.OrderEntity;
-import org.sunbong.allmart_api.order.domain.OrderStatus;
-import org.sunbong.allmart_api.order.dto.OrderDTO;
-import org.sunbong.allmart_api.order.repository.OrderJpaRepository;
-
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import org.sunbong.allmart_api.delivery.repository.DriverRepository;
+import org.sunbong.allmart_api.order.dto.OrderEvent;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
+@Log4j2
 public class DeliveryService {
 
-    private final OrderJpaRepository orderRepository;
     private final DeliveryRepository deliveryRepository;
+    private final DriverRepository driverRepository;
+    private final RedisLocationService redisLocationService;
 
-    /**
-     * 2시간 동안 COMPLETED 상태의 주문을 고객 ID별로 묶어 배달 생성
-     */
-    public List<DeliveryDTO> processOrdersForDelivery(LocalDateTime startTime, LocalDateTime endTime) {
-        // COMPLETED 상태의 주문 조회
-        List<OrderEntity> completedOrders = orderRepository.findByStatusAndCreatedDateBetween(OrderStatus.COMPLETED, startTime, endTime);
+    public void processOrderEvent(OrderEvent orderEvent) {
+        DriverEntity driver = findAvailableDriver();
 
-        // 고객 ID별로 주문 그룹화
-        Map<String, List<OrderEntity>> ordersGroupedByCustomer = completedOrders.stream()
-                .collect(Collectors.groupingBy(OrderEntity::getCustomerId));
-
-        return ordersGroupedByCustomer.entrySet().stream()
-                .map(entry -> {
-                    String customerId = entry.getKey();
-                    List<OrderEntity> orders = entry.getValue();
-
-                    // 고객 ID로 기존 PENDING 상태 배달 찾기
-                    Optional<OrderEntity> anyOrder = orders.stream().findFirst();
-                    if (anyOrder.isPresent() && anyOrder.get().getDelivery() != null) {
-                        DeliveryEntity existingDelivery = anyOrder.get().getDelivery();
-
-                        // 기존 배달에 주문 연결
-                        orders.forEach(order -> {
-                            order.assignDelivery(existingDelivery);
-                            orderRepository.save(order);
-                        });
-
-                        // 기존 배달 중 사용되지 않는 배달 삭제
-                        deleteUnusedDeliveries(existingDelivery.getDeliveryID());
-
-                        return DeliveryDTO.builder()
-                                .deliveryId(existingDelivery.getDeliveryID())
-                                .deliveryTime(existingDelivery.getDeliveryTime())
-                                .status(existingDelivery.getStatus().name())
-                                .customerId(customerId)
-                                .build();
-                    } else {
-                        // 새로운 배달 생성
-                        DeliveryEntity newDelivery = DeliveryEntity.builder()
-                                .deliveryTime(LocalDateTime.now())
-                                .status(DeliveryStatus.PENDING)
-                                .build();
-                        deliveryRepository.save(newDelivery);
-
-                        // 새로운 배달에 주문 연결
-                        orders.forEach(order -> {
-                            order.assignDelivery(newDelivery);
-                            orderRepository.save(order);
-                        });
-
-                        // 기존 배달 중 사용되지 않는 배달 삭제
-                        deleteUnusedDeliveries(newDelivery.getDeliveryID());
-
-                        return DeliveryDTO.builder()
-                                .deliveryId(newDelivery.getDeliveryID())
-                                .deliveryTime(newDelivery.getDeliveryTime())
-                                .status(newDelivery.getStatus().name())
-                                .customerId(customerId)
-                                .build();
-                    }
-                })
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * 기존 배달 중 사용되지 않는 배달 삭제
-     */
-    private void deleteUnusedDeliveries(Long currentDeliveryId) {
-        List<DeliveryEntity> allDeliveries = deliveryRepository.findByStatus(DeliveryStatus.PENDING);
-
-        for (DeliveryEntity delivery : allDeliveries) {
-            if (!delivery.getDeliveryID().equals(currentDeliveryId)) {
-                // 배달에 연결된 주문 확인
-                List<OrderEntity> linkedOrders = orderRepository.findByDeliveryDeliveryID(delivery.getDeliveryID());
-                if (linkedOrders.isEmpty()) {
-                    // 연결된 주문이 없다면 배달 삭제
-                    deliveryRepository.delete(delivery);
-                }
-            }
+        if (driver == null) {
+            log.warn("No available driver for order: {}", orderEvent.getOrderId());
+            return;
         }
-    }
 
-    /**
-     * 특정 배달 ID에 포함된 주문 조회
-     */
-    public List<OrderDTO> getOrdersByDeliveryId(Long deliveryId) {
-        List<OrderEntity> orders = orderRepository.findByDeliveryDeliveryID(deliveryId);
-
-        return orders.stream()
-                .map(order -> OrderDTO.builder()
-                        .orderId(order.getOrderID())
-                        .customerId(order.getCustomerId())
-                        .totalAmount(order.getTotalAmount())
-                        .status(order.getStatus().name())
-                        .orderTime(order.getCreatedDate())
-                        .build())
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * 배달 상태 변경
-     */
-    public DeliveryDTO changeDeliveryStatus(Long deliveryId, String newStatus) {
-        DeliveryEntity delivery = deliveryRepository.findById(deliveryId)
-                .orElseThrow(() -> new IllegalArgumentException("Delivery not found for ID: " + deliveryId));
-
-        try {
-            DeliveryStatus status = DeliveryStatus.valueOf(newStatus.toUpperCase());
-            delivery = delivery.toBuilder().status(status).build();
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid delivery status: " + newStatus);
-        }
+        DeliveryEntity delivery = DeliveryEntity.builder()
+                .driver(driver)
+                .orderId(orderEvent.getOrderId())
+                .status(DeliveryStatus.PENDING)
+                .build();
 
         deliveryRepository.save(delivery);
 
-        return DeliveryDTO.builder()
-                .deliveryId(delivery.getDeliveryID())
-                .deliveryTime(delivery.getDeliveryTime())
-                .status(delivery.getStatus().name())
+        log.info("Assigned delivery: {} to driver: {}", orderEvent.getOrderId(), driver.getName());
+
+        updateDriverDeliveryCount(driver);
+    }
+
+    private DriverEntity findAvailableDriver() {
+        return driverRepository.findFirstByMaxDeliveryCountGreaterThanOrderByIdAsc(0);
+    }
+
+    private void updateDriverDeliveryCount(DriverEntity driver) {
+        int newCount = driver.getMaxDeliveryCount() - 1;
+        driver = DriverEntity.builder()
+                .id(driver.getId())
+                .name(driver.getName())
+                .maxDeliveryCount(newCount)
                 .build();
+        driverRepository.save(driver);
     }
 
-    @Transactional(readOnly = true)
-    public Map<String, Long> getDeliveryStatusCount() {
-        // 배달 상태별로 개수를 계산
-        Map<DeliveryStatus, Long> statusCounts = deliveryRepository.findAll().stream()
-                .collect(Collectors.groupingBy(DeliveryEntity::getStatus, Collectors.counting()));
+    public void updateDeliveryStatus(Long deliveryId, DeliveryStatus newStatus) {
+        DeliveryEntity delivery = deliveryRepository.findById(deliveryId)
+                .orElseThrow(() -> new IllegalArgumentException("Delivery not found with id: " + deliveryId));
 
-        // 상태를 문자열로 변환하여 반환
-        return statusCounts.entrySet().stream()
-                .collect(Collectors.toMap(
-                        entry -> entry.getKey().name(), // DeliveryStatus -> String
-                        Map.Entry::getValue // 개수
-                ));
-    }
+        delivery = DeliveryEntity.builder()
+                .id(delivery.getId())
+                .driver(delivery.getDriver())
+                .orderId(delivery.getOrderId())
+                .status(newStatus)
+                .build();
 
-    @Transactional(readOnly = true)
-    public List<OrderDTO> getOrdersByStatus(String status) {
-        try {
-            DeliveryStatus deliveryStatus = DeliveryStatus.valueOf(status.toUpperCase());
-            List<OrderEntity> orders = orderRepository.findByDeliveryStatus(deliveryStatus);
+        deliveryRepository.save(delivery);
 
-            return orders.stream()
-                    .map(order -> OrderDTO.builder()
-                            .orderId(order.getOrderID())
-                            .customerId(order.getCustomerId())
-                            .totalAmount(order.getTotalAmount())
-                            .status(order.getStatus().name())
-                            .orderTime(order.getCreatedDate())
-                            .build())
-                    .collect(Collectors.toList());
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid status: " + status);
+        // 배달이 완료되면 Redis에서 위치 정보 삭제
+        if (newStatus == DeliveryStatus.COMPLETED) {
+            // RedisLocationService 인스턴스를 사용하여 드라이버 위치 제거
+            redisLocationService.removeDriverLocation(delivery.getDriver().getId());
+            log.info("Removed location for driver: {}", delivery.getDriver().getId());
         }
     }
 }
-
 

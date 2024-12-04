@@ -1,8 +1,10 @@
 package org.sunbong.allmart_api.member.exception;
 
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
+@EqualsAndHashCode(callSuper = false)
 public class MemberTaskException extends RuntimeException {
 
     private int status;
