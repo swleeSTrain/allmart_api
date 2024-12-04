@@ -1,29 +1,28 @@
 package org.sunbong.allmart_api.delivery.domain;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
+import org.sunbong.allmart_api.common.domain.BaseEntity;
+
+import java.time.LocalDateTime;
 
 @Entity
 @Getter
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
-public class DeliveryEntity {
+@ToString(callSuper = true)
+@Table(name = "tbl_delivery")
+public class DeliveryEntity extends BaseEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Long deliveryID;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "driver_id", nullable = false)
-    private DriverEntity driver;
+    private LocalDateTime deliveryTime;
 
+    @Builder.Default
     @Column(nullable = false)
-    private Long orderId;
-
-    @Enumerated(EnumType.STRING) // Enum을 문자열로 저장
-    @Column(nullable = false)
-    private DeliveryStatus status;
+    @Enumerated(EnumType.STRING)
+    private DeliveryStatus status = DeliveryStatus.PENDING;
 }
