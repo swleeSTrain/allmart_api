@@ -180,6 +180,7 @@ public class MartSearchImpl extends QuerydslRepositorySupport implements MartSea
                 .martID(result.getMartID())
                 .martName(result.getMartName())
                 .phoneNumber(result.getPhoneNumber())
+                .template(result.getTemplate())
                 .address(result.getAddress())
                 .certificate(result.getCertificate())
                 .attachLogo(attachLogo)

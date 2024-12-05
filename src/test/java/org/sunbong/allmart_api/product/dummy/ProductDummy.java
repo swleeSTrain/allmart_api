@@ -6,14 +6,17 @@ import lombok.extern.log4j.Log4j2;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.annotation.Commit;
 import org.springframework.test.annotation.Rollback;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 import org.sunbong.allmart_api.category.domain.Category;
 import org.sunbong.allmart_api.category.repository.CategoryRepository;
 import org.sunbong.allmart_api.common.util.CustomFileUtil;
+import org.sunbong.allmart_api.elasticsearch.ElasticSearchService;
 import org.sunbong.allmart_api.product.dto.ProductAddDTO;
 import org.sunbong.allmart_api.product.service.ProductService;
 
@@ -43,6 +46,9 @@ public class ProductDummy {
 
     @Autowired
     private CategoryRepository categoryRepository;
+
+    @Autowired
+    private ElasticSearchService elasticSearchService;
 
     @Test
     public void testAddCategoriesInOrder() {
@@ -74,8 +80,57 @@ public class ProductDummy {
     }
 
     @Test
+    @Rollback(value = false)
+    public void testForElasticSearch() throws Exception {
+        // JSON 파일 경로
+        String jsonFilePath = "src/test/resources/filtered_product_data.json";
+
+        // JSON 파일 읽기
+        ObjectMapper objectMapper = new ObjectMapper();
+        List<Map<String, Object>> productList = objectMapper.readValue(new File(jsonFilePath), List.class);
+
+        // 데이터 반복 처리
+        for (Map<String, Object> productData : productList) {
+            // JSON 데이터에서 값 추출
+            String name = (String) productData.get("name");
+            String sku = (String) productData.get("sku");
+            Integer price = (Integer) productData.get("price");
+            String fileUrl = (String) productData.get("file");
+            Long categoryID = ((Number) productData.get("categoryID")).longValue();
+            Long martID = ((Number) productData.get("martID")).longValue();
+
+            // MockMultipartFile 생성 (fileUrl에서 다운로드)
+            MultipartFile mockFile = createMockMultipartFileFromUrl(fileUrl);
+
+            // ProductAddDTO 생성
+            ProductAddDTO dto = ProductAddDTO.builder()
+                    .name(name)
+                    .sku(sku)
+                    .price(BigDecimal.valueOf(price))
+                    .files(List.of(mockFile))
+                    .categoryID(categoryID)
+                    .build();
+
+            // 상품 등록
+            Long productId = null;
+            try {
+                productId = productService.register(martID, dto); // martID 추가
+                assertNotNull(productId, "Product ID should not be null after registration");
+
+                // 서비스 계층을 이용하여 Elasticsearch 인덱싱 요청
+                elasticSearchService.indexProduct(name);
+            } catch (Exception e) {
+                log.error("Error while registering product or indexing to Elasticsearch: ", e);
+                // 예외가 발생해도 트랜잭션이 롤백되지 않도록 적절히 처리할 수 있습니다.
+            }
+        }
+    }
+
+
+    @Test
     @Rollback(false)
     public void testRegisterDummiesFromJson() throws Exception {
+
         // JSON 파일 경로
         String jsonFilePath = "src/test/resources/product_data.json";
 
@@ -85,6 +140,7 @@ public class ProductDummy {
 
         // 데이터 반복 처리
         for (Map<String, Object> productData : productList) {
+
             // JSON 데이터에서 값 추출
             String name = (String) productData.get("name");
             String sku = (String) productData.get("sku");

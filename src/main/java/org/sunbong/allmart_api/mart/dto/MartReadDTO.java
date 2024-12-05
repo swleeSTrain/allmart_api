@@ -17,6 +17,7 @@ public class MartReadDTO {
     private Long martID;
     private String martName;
     private String phoneNumber;
+    private String template;
     private String address;
     private String certificate;
 
