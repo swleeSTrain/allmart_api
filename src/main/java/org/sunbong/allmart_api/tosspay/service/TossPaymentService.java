@@ -55,5 +55,7 @@ public class TossPaymentService {
         Base64.Encoder encoder = Base64.getEncoder();
         byte[] encodedBytes = encoder.encode((secretKey + ":").getBytes(StandardCharsets.UTF_8));
         return "Basic " + new String(encodedBytes);
+
+
     }
 }
