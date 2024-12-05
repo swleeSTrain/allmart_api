@@ -11,9 +11,12 @@
 //import org.springframework.http.ResponseEntity;
 //import org.springframework.stereotype.Service;
 //import org.springframework.web.client.RestTemplate;
+//import org.sunbong.allmart_api.common.dto.PageRequestDTO;
+//import org.sunbong.allmart_api.common.dto.PageResponseDTO;
 //import org.sunbong.allmart_api.kakao.dto.MartLocationDTO;
 //import org.sunbong.allmart_api.kakao.dto.MartMapDTO;
 //import org.sunbong.allmart_api.mart.domain.Mart;
+//import org.sunbong.allmart_api.mart.dto.MartListDTO;
 //import org.sunbong.allmart_api.mart.repository.MartRepository;
 //
 //import java.util.Base64;
@@ -32,6 +35,14 @@
 //
 //    private final RestTemplate restTemplate = new RestTemplate();
 //    private final MartRepository martRepository;
+//
+//    // 리스트
+//    public PageResponseDTO<MartListDTO> list(PageRequestDTO pageRequestDTO, double lat, double lng) {
+//
+//        PageResponseDTO<MartListDTO> result = martRepository.listWithinRadius(pageRequestDTO, lat, lng, 3.0);
+//
+//        return result;
+//    }
 //
 //    // Kakao 지도 스크립트 URL 반환
 //    public String getMapScriptUrl() {
@@ -76,7 +87,6 @@
 //        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 //        return EARTH_RADIUS * c;
 //    }
-//
 //
 //    // 주소를 위도 경도로 변환
 //    public MartLocationDTO getCoordinates(String address) {
@@ -132,4 +142,5 @@
 //            throw new RuntimeException("Failed to parse Kakao API response", e);
 //        }
 //    }
+//
 //}
