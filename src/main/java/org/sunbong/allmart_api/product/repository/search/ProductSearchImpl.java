@@ -1,6 +1,9 @@
 package org.sunbong.allmart_api.product.repository.search;
 
 import com.querydsl.core.BooleanBuilder;
+import com.querydsl.core.types.OrderSpecifier;
+import com.querydsl.core.types.dsl.CaseBuilder;
+import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.JPQLQuery;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.data.domain.PageRequest;
@@ -26,6 +29,88 @@ public class ProductSearchImpl extends QuerydslRepositorySupport implements Prod
     public ProductSearchImpl() {
         super(Product.class);
     }
+
+    @Override
+    public PageResponseDTO<ProductListDTO> searchBySKU(List<String> skuList, PageRequestDTO pageRequestDTO) {
+        log.info("-------------------searchBySKU----------");
+
+        QProduct product = QProduct.product;
+        QProductImage attachFile = QProductImage.productImage;
+        QMartProduct martProduct = QMartProduct.martProduct;
+
+        BooleanBuilder builder = new BooleanBuilder();
+
+        // SKU 필터
+        if (skuList != null && !skuList.isEmpty()) {
+            builder.and(product.sku.in(skuList));
+        }
+
+        // 검색 조건 추가
+        String keyword = pageRequestDTO.getKeyword();
+        String type = pageRequestDTO.getType();
+        if (keyword != null && type != null) {
+            if (type.contains("name")) {
+                builder.or(product.name.containsIgnoreCase(keyword));
+            }
+            if (type.contains("sku")) {
+                builder.or(product.sku.containsIgnoreCase(keyword));
+            }
+        }
+
+        // 카테고리 필터 추가
+        Long categoryID = pageRequestDTO.getCategoryID();
+        if (categoryID != null) {
+            builder.and(product.category.categoryID.eq(categoryID));
+        }
+
+        // 쿼리 작성
+        JPQLQuery<MartProduct> query = from(martProduct)
+                .join(martProduct.product, product).fetchJoin()
+                .join(product.attachImages, attachFile)
+                .where(martProduct.delFlag.eq(false)) // 삭제되지 않은 MartProduct
+                .where(attachFile.ord.eq(0)) // 첫 번째 이미지
+                .where(builder);
+
+        // SKU 순서 유지 정렬
+        CaseBuilder.Cases<Integer, NumberExpression<Integer>> orderSpecifier = new CaseBuilder()
+                .when(product.sku.eq(skuList.get(0))).then(0); // 초기값 추가
+        for (int i = 1; i < skuList.size(); i++) {
+            orderSpecifier = orderSpecifier.when(product.sku.eq(skuList.get(i))).then(i);
+        }
+        query.orderBy(orderSpecifier.otherwise(skuList.size()).asc());
+
+        // 페이징 처리
+        query.offset((long) (pageRequestDTO.getPage() - 1) * pageRequestDTO.getSize())
+                .limit(pageRequestDTO.getSize());
+
+        // 쿼리 실행
+        List<MartProduct> paginatedList = query.fetch();
+
+        // 총 개수 계산
+        long totalCount = query.fetchCount();
+
+        // DTO 변환
+        List<ProductListDTO> dtoList = paginatedList.stream()
+                .map(mp -> {
+                    Product prod = mp.getProduct();
+                    return ProductListDTO.builder()
+                            .productID(prod.getProductID())
+                            .name(prod.getName())
+                            .sku(prod.getSku())
+                            .price(prod.getPrice())
+                            .thumbnailImage(prod.getAttachImages().isEmpty() ? null : prod.getAttachImages().get(0).getImageURL())
+                            .build();
+                })
+                .collect(Collectors.toList());
+
+        return PageResponseDTO.<ProductListDTO>withAll()
+                .dtoList(dtoList)
+                .pageRequestDTO(pageRequestDTO)
+                .totalCount(totalCount)
+                .build();
+    }
+
+
 
     @Override
     public PageResponseDTO<ProductListDTO> list(Long martID, PageRequestDTO pageRequestDTO) {
