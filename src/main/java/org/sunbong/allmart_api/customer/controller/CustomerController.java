@@ -47,39 +47,14 @@ public class CustomerController {
     @Value("${org.allmart_api.alwaysNew}")
     private boolean alwaysNew;
 
-    @PostMapping("/makeToken")
-    public ResponseEntity<CustomerTokenResponseDTO> makeToken(@RequestBody @Validated CustomerTokenRequestDTO tokenRequestDTO) {
+    @PostMapping("/signIn/phoneNumber")
+    public ResponseEntity<CustomerTokenResponseDTO> phoneNumberSignIn(
+            @RequestBody CustomerSignInRequestDTO signInRequest) {
 
-        log.info("Making token");
-        log.info("------------------------");
+        // 로그인 타입 설정
+        CustomerTokenResponseDTO tokenResponseDTO = customerService.signIn(signInRequest, CustomerLoginType.PHONE);
 
-        String userData = (tokenRequestDTO.getLoginType() == CustomerLoginType.PHONE ? tokenRequestDTO.getPhoneNumber() : tokenRequestDTO.getEmail());
-        CustomerResponseDTO customerDTO = customerService.authenticate(
-                userData, tokenRequestDTO.getLoginType());
-
-        log.info(customerDTO);
-
-        Map<String, Object> claimMap;
-
-        if (tokenRequestDTO.getLoginType() == CustomerLoginType.SOCIAL) {
-            claimMap = Map.of(
-                    "email", customerDTO.getEmail());
-
-        } else {
-            claimMap = Map.of(
-                    "phoneNumber", customerDTO.getPhoneNumber());
-        }
-
-        String accesToken = jWTUtil.createToken(claimMap, accessTime);
-        String refreshToken = jWTUtil.createToken(claimMap, refreshTime);
-
-        CustomerTokenResponseDTO tokenResponseDTO = CustomerTokenResponseDTO.builder()
-                .accessToken(accesToken)
-                .refreshToken(refreshToken)
-                .email(customerDTO.getEmail())
-                .phoneNumber(customerDTO.getPhoneNumber())
-                .build();
-
+        // 토큰 반환
         return ResponseEntity.ok(tokenResponseDTO);
     }
 
@@ -159,13 +134,6 @@ public class CustomerController {
         }
     }
 
-
-    @GetMapping("/signIn/phoneNumber/{phoneNumber}")
-    public ResponseEntity<String> phoneNumberSignIn(@PathVariable(name = "phoneNumber", required = false) String phoneNumber) {
-
-        return ResponseEntity.ok("");
-    }
-
     @GetMapping
     public ResponseEntity<List<CustomerListDTO>> getAllCustomers() {
         List<CustomerListDTO> customers = customerService.getAllAddressesWithCustomer();
@@ -213,17 +181,57 @@ public class CustomerController {
         return ResponseEntity.ok(tokenResponse);
     }
 
-    @PostMapping("/verifyToken")
-    public ResponseEntity<CustomerResponseDTO> verifyToken(@RequestHeader("Authorization") String token) {
-        // Bearer 토큰에서 "Bearer " 제거
-        if (token.startsWith("Bearer ")) {
-            token = token.substring(7);
-        }
 
-        // 토큰 검증 및 고객 정보 반환
-        CustomerResponseDTO customerDTO = customerService.verify(token);
-        return ResponseEntity.ok(customerDTO);
-    }
+    // 여기도 customerSearch랑 엮인 부분 있어서 주석 처리 함
+
+    //    @PostMapping("/makeToken")
+//    public ResponseEntity<CustomerTokenResponseDTO> makeToken(@RequestBody @Validated CustomerTokenRequestDTO tokenRequestDTO) {
+//
+//        log.info("Making token");
+//        log.info("------------------------");
+//
+//        String userData = (tokenRequestDTO.getLoginType() == CustomerLoginType.PHONE ? tokenRequestDTO.getPhoneNumber() : tokenRequestDTO.getEmail());
+//        CustomerResponseDTO customerDTO = customerService.authenticate(
+//                userData, tokenRequestDTO.getLoginType());
+//
+//        log.info(customerDTO);
+//
+//        Map<String, Object> claimMap;
+//
+//        if (tokenRequestDTO.getLoginType() == CustomerLoginType.SOCIAL) {
+//            claimMap = Map.of(
+//                    "email", customerDTO.getEmail());
+//
+//        } else {
+//            claimMap = Map.of(
+//                    "phoneNumber", customerDTO.getPhoneNumber());
+//        }
+//
+//        String accesToken = jWTUtil.createToken(claimMap, accessTime);
+//        String refreshToken = jWTUtil.createToken(claimMap, refreshTime);
+//
+//        CustomerTokenResponseDTO tokenResponseDTO = CustomerTokenResponseDTO.builder()
+//                .accessToken(accesToken)
+//                .refreshToken(refreshToken)
+//                .email(customerDTO.getEmail())
+//                .phoneNumber(customerDTO.getPhoneNumber())
+//                .build();
+//
+//        return ResponseEntity.ok(tokenResponseDTO);
+//    }
+
+
+//    @PostMapping("/verifyToken")
+//    public ResponseEntity<CustomerResponseDTO> verifyToken(@RequestHeader("Authorization") String token) {
+//        // Bearer 토큰에서 "Bearer " 제거
+//        if (token.startsWith("Bearer ")) {
+//            token = token.substring(7);
+//        }
+//
+//        // 토큰 검증 및 고객 정보 반환
+//        CustomerResponseDTO customerDTO = customerService.verify(token);
+//        return ResponseEntity.ok(customerDTO);
+//    }
 
 
 

@@ -50,6 +50,8 @@ public class MartService {
                 .template(dto.getTemplate())
                 .address(dto.getAddress())
                 .certificate(dto.getCertificate())
+                .lat(dto.getLat())
+                .lng(dto.getLng())
                 .build();
 
         // 업로드할 파일이 있을 경우

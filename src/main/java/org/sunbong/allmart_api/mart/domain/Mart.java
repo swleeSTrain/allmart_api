@@ -38,6 +38,12 @@ public class Mart extends BaseEntity {
     @Column(name = "certificate", length = 255, nullable = false)
     private String certificate; // 사업자등록증
 
+    @Column(name = "lat", nullable = false)
+    private double lat; // 위도
+
+    @Column(name = "lng", nullable = false)
+    private double lng; // 경도
+
     @Builder.Default
     private boolean delFlag = false;
 
