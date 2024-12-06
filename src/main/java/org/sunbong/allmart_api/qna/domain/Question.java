@@ -58,6 +58,7 @@ public class Question extends BaseEntity {
     public void removeFile(String filename) {
         // 특정 파일 이름과 일치하는 파일을 제거
         attachFiles.removeIf(file -> file.getFileName().equals(filename));
+
     }
 
     public void editQuestion(String title, String content, String writer, Set<String> tags) {
