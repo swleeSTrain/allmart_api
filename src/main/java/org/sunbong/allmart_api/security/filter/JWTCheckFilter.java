@@ -13,7 +13,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
-import org.sunbong.allmart_api.security.auth.MemberPrincipal;
+import org.sunbong.allmart_api.security.auth.CustomPrincipal;
 import org.sunbong.allmart_api.security.util.JWTUtil;
 
 import java.io.IOException;
@@ -92,7 +92,7 @@ public class JWTCheckFilter extends OncePerRequestFilter {
             String email = (String) claims.get("email");
             String role = (String) claims.get("role");
 
-            Principal userPrincipal = new MemberPrincipal(email);
+            Principal userPrincipal = new CustomPrincipal(email);
 
             UsernamePasswordAuthenticationToken authenticationToken
                     = new UsernamePasswordAuthenticationToken(userPrincipal, null,
