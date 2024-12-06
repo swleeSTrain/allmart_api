@@ -24,4 +24,5 @@ public class Answer extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     private Question question;
 
+
 }
