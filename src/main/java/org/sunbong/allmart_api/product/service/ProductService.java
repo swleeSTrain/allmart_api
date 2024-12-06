@@ -11,6 +11,7 @@ import org.sunbong.allmart_api.category.repository.CategoryRepository;
 import org.sunbong.allmart_api.common.dto.PageRequestDTO;
 import org.sunbong.allmart_api.common.dto.PageResponseDTO;
 import org.sunbong.allmart_api.common.util.CustomFileUtil;
+import org.sunbong.allmart_api.elasticsearch.ElasticSearchService;
 import org.sunbong.allmart_api.inventory.domain.Inventory;
 import org.sunbong.allmart_api.inventory.repository.InventoryRepository;
 import org.sunbong.allmart_api.mart.domain.Mart;
@@ -38,6 +39,16 @@ public class ProductService {
     private final MartRepository martRepository;
     private final MartProductRepository martProductRepository;
     private final CustomFileUtil fileUtil;
+
+    private final ElasticSearchService elasticSearchService;
+
+    public PageResponseDTO<ProductListDTO> searchBySKU(List<String> skuList, PageRequestDTO pageRequestDTO) {
+
+        log.info("Service - Searching by SKU list: {}, PageRequestDTO: {}", skuList, pageRequestDTO);
+
+        return productRepository.searchBySKU(skuList, pageRequestDTO);
+    }
+
 
     // 조회
     public ProductReadDTO readById(Long martID, Long productID) {
@@ -98,6 +109,9 @@ public class ProductService {
                 .build();
 
         inventoryRepository.save(inventory);
+
+        // Elasticsearch에 상품 이름 인덱싱
+        elasticSearchService.indexProduct(dto.getName(), dto.getSku());
 
         return savedProduct.getProductID();
     }
@@ -194,6 +208,9 @@ public class ProductService {
                     .build();
             martProductRepository.save(martProduct);
         }
+
+        // Elasticsearch에 상품 이름 인덱싱
+        elasticSearchService.indexProduct(updatedProduct.getName(), dto.getSku());
 
         return updatedProduct.getProductID();
     }
