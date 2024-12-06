@@ -118,7 +118,7 @@ public class ProductDummy {
                 assertNotNull(productId, "Product ID should not be null after registration");
 
                 // 서비스 계층을 이용하여 Elasticsearch 인덱싱 요청
-                elasticSearchService.indexProduct(name);
+                elasticSearchService.indexProduct(name, sku);
             } catch (Exception e) {
                 log.error("Error while registering product or indexing to Elasticsearch: ", e);
                 // 예외가 발생해도 트랜잭션이 롤백되지 않도록 적절히 처리할 수 있습니다.

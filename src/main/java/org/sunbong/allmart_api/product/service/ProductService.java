@@ -42,6 +42,14 @@ public class ProductService {
 
     private final ElasticSearchService elasticSearchService;
 
+    public PageResponseDTO<ProductListDTO> searchBySKU(List<String> skuList, PageRequestDTO pageRequestDTO) {
+
+        log.info("Service - Searching by SKU list: {}, PageRequestDTO: {}", skuList, pageRequestDTO);
+
+        return productRepository.searchBySKU(skuList, pageRequestDTO);
+    }
+
+
     // 조회
     public ProductReadDTO readById(Long martID, Long productID) {
 
@@ -103,7 +111,7 @@ public class ProductService {
         inventoryRepository.save(inventory);
 
         // Elasticsearch에 상품 이름 인덱싱
-        elasticSearchService.indexProduct(dto.getName());
+        elasticSearchService.indexProduct(dto.getName(), dto.getSku());
 
         return savedProduct.getProductID();
     }
@@ -202,7 +210,7 @@ public class ProductService {
         }
 
         // Elasticsearch에 상품 이름 인덱싱
-        elasticSearchService.indexProduct(updatedProduct.getName());
+        elasticSearchService.indexProduct(updatedProduct.getName(), dto.getSku());
 
         return updatedProduct.getProductID();
     }
