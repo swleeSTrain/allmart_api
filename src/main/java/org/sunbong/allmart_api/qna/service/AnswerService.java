@@ -7,8 +7,13 @@ import org.springframework.transaction.annotation.Transactional;
 import org.sunbong.allmart_api.qna.domain.Answer;
 import org.sunbong.allmart_api.qna.domain.Question;
 import org.sunbong.allmart_api.qna.dto.AnswerAddDTO;
+import org.sunbong.allmart_api.qna.dto.AnswerListDTO;
+import org.sunbong.allmart_api.qna.dto.QnaReadDTO;
 import org.sunbong.allmart_api.qna.repository.AnswerRepository;
 import org.sunbong.allmart_api.qna.repository.QuestionRepository;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -19,7 +24,30 @@ public class AnswerService {
 
     private final AnswerRepository answerRepository;
     private final QuestionRepository questionRepository;
+///=======================================
+    public QnaReadDTO getQuestionWithAnswers(Long qno) {
+        QnaReadDTO dto = answerRepository.readByQno(qno);
 
+        // 방어적 처리: 답변이 없는 경우 빈 리스트를 반환
+        if (dto.getAnswers() == null) {
+            dto.setAnswers(List.of());
+        }
+
+        return dto;
+    }
+//=========================================
+
+    public List<AnswerListDTO> getAnswersByQuestion(Long qno) {
+        List<Answer> answers = answerRepository.findByQuestionQno(qno);
+        return answers.stream()
+                .map(answer -> AnswerListDTO.builder()
+                        .ano(answer.getAno())
+                        .content(answer.getContent())
+                        .writer(answer.getWriter())
+                        .createdDate(answer.getCreatedDate())
+                        .build())
+                .collect(Collectors.toList());
+    }
     // 답변 등록
     @Transactional
     public Long registerAnswer(AnswerAddDTO dto) {

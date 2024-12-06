@@ -11,6 +11,7 @@ import org.sunbong.allmart_api.common.util.CustomFileUtil;
 import org.sunbong.allmart_api.qna.domain.Question;
 import org.sunbong.allmart_api.qna.dto.QnaReadDTO;
 import org.sunbong.allmart_api.qna.dto.QuestionAddDTO;
+import org.sunbong.allmart_api.qna.dto.QuestionEditDTO;
 import org.sunbong.allmart_api.qna.dto.QuestionListDTO;
 import org.sunbong.allmart_api.qna.repository.AnswerRepository;
 import org.sunbong.allmart_api.qna.repository.QuestionRepository;
@@ -30,13 +31,10 @@ public class QuestionService {
     private final CustomFileUtil fileUtil;
 
     // 조회
-    public PageResponseDTO<QnaReadDTO> readByQno(Long qno, PageRequestDTO pageRequestDTO) {
+    public QnaReadDTO readByQno(Long qno) {
 
-        if (pageRequestDTO.getPage() < 0) {
-            throw CommonExceptions.LIST_ERROR.get();
-        }
 
-        return answerRepository.readByQno(qno, pageRequestDTO);
+        return answerRepository.readByQno(qno);
     }
 
     // 질문 리스트
@@ -80,24 +78,39 @@ public class QuestionService {
         return question.getQno();
     }
 
-    // 질문 수정
-    public Long editQuestion(Long qno, QuestionAddDTO dto) throws IOException {
-
+    public Long editQuestion(Long qno, QuestionEditDTO dto) throws IOException {
+        // 질문 조회
         Question question = questionRepository.findById(qno)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid question ID"));
 
-        question.editQuestion(dto.getTitle(), dto.getContent(),
-                dto.getWriter(), new HashSet<>(dto.getTags()));
+        // 질문 정보 업데이트
+        question.editQuestion(dto.getTitle(), dto.getContent(), dto.getWriter(), new HashSet<>(dto.getTags()));
 
-        if (dto.getFiles() != null && !dto.getFiles().isEmpty()) {
-            List<String> savedFileNames = fileUtil.saveFiles(dto.getFiles());
-            for (String fileName : savedFileNames) {
-                question.addFile(fileName);
-            }
+        // 기존 파일 처리
+        List<String> retainedFiles = dto.getExistingFileNames(); // 유지할 파일 이름 목록
+
+        if (retainedFiles != null) {
+            // 기존 파일 중 유지할 파일을 제외한 나머지 삭제
+            question.getAttachFiles()
+                    .removeIf(file -> !retainedFiles.contains(file.getFileName()));
+        } else {
+            // retainedFiles가 null인 경우 모든 파일 삭제
+            question.clearFiles();
         }
 
+        // 새 파일 저장
+        if (dto.getFiles() != null && !dto.getFiles().isEmpty()) {
+            // 파일 저장
+            List<String> newFileNames = fileUtil.saveFiles(dto.getFiles());
+
+            // 새로 저장된 파일들을 Question에 추가
+            newFileNames.forEach(question::addFile);
+        }
+
+        // 변경 사항 저장
         questionRepository.save(question);
 
         return question.getQno();
-    }
+
+        }
 }

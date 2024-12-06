@@ -5,7 +5,10 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.sunbong.allmart_api.qna.dto.AnswerAddDTO;
+import org.sunbong.allmart_api.qna.dto.AnswerListDTO;
 import org.sunbong.allmart_api.qna.service.AnswerService;
+
+import java.util.List;
 
 
 @RestController
@@ -15,6 +18,12 @@ import org.sunbong.allmart_api.qna.service.AnswerService;
 public class AnswerController {
 
     private final AnswerService answerService;
+
+    @GetMapping("/{qno}")
+    public ResponseEntity<List<AnswerListDTO>> getAnswersByQuestion(@PathVariable Long qno) {
+        List<AnswerListDTO> answers = answerService.getAnswersByQuestion(qno);
+        return ResponseEntity.ok(answers);
+    }
 
     @PostMapping("add")
     public ResponseEntity<Long> registerAnswer(@RequestBody AnswerAddDTO dto) {
