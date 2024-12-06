@@ -17,7 +17,7 @@ public class TossPaymentService {
     private final TossPaymentRepository tossPaymentRepository;
     private final RestTemplate restTemplate = new RestTemplate();
 
-    @Value("${toss.key}")
+    @Value("${toss.SECRET_KEY}")
     private String tossSecretKey;
 
 
