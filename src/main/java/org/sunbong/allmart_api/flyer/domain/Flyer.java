@@ -17,7 +17,7 @@ import java.util.Set;
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
-@ToString(callSuper = true, exclude = {"attachImages", "audioURL"})
+@ToString(callSuper = true, exclude = {"attachImages", "audioURL","producedVideo"})
 public class Flyer extends BaseEntity {
 
     @Id
@@ -43,6 +43,11 @@ public class Flyer extends BaseEntity {
     @Builder.Default
     private List<FlyerImage> attachImages = new ArrayList<>();
 
+    // 1:1 관계 설정
+    @OneToOne(mappedBy = "flyer", cascade = CascadeType.ALL, orphanRemoval = true)
+    private ProducedVideo producedVideo;
+
+
     public void addImage(String filename) {
         attachImages.add(new FlyerImage(filename, attachImages.size()));
     }
@@ -57,6 +62,12 @@ public class Flyer extends BaseEntity {
 
     public void clearAudioURL() {
         audioURL.clear();
+    }
+
+    // ProducedVideo 설정 메서드
+    public void setProducedVideo(ProducedVideo producedVideo) {
+        this.producedVideo = producedVideo;
+        producedVideo.setFlyer(this);
     }
 
 }
