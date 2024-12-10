@@ -11,7 +11,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "tbl_product")
+@Table(
+        name = "tbl_product",
+        indexes = {
+            @Index(name = "idx_product_sku", columnList = "sku")
+        }
+)
 @Builder(toBuilder = true)
 @AllArgsConstructor
 @NoArgsConstructor

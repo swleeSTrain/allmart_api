@@ -8,11 +8,10 @@ import org.springframework.web.bind.annotation.*;
 import org.sunbong.allmart_api.common.dto.PageRequestDTO;
 import org.sunbong.allmart_api.common.dto.PageResponseDTO;
 import org.sunbong.allmart_api.common.exception.CommonExceptions;
-import org.sunbong.allmart_api.product.dto.ProductAddDTO;
-import org.sunbong.allmart_api.product.dto.ProductEditDTO;
-import org.sunbong.allmart_api.product.dto.ProductListDTO;
-import org.sunbong.allmart_api.product.dto.ProductReadDTO;
+import org.sunbong.allmart_api.product.dto.*;
 import org.sunbong.allmart_api.product.service.ProductService;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/product")
@@ -21,6 +20,26 @@ import org.sunbong.allmart_api.product.service.ProductService;
 public class ProductController {
 
     private final ProductService productService;
+
+    @PostMapping("/search")
+    public ResponseEntity<PageResponseDTO<ProductListDTO>> searchBySKU(
+            @RequestBody SKURequestDTO skuRequestDTO
+    ) {
+        List<String> skuList = skuRequestDTO.getSkuList();
+        int page = skuRequestDTO.getPage(); // page 필드 추가
+        int size = skuRequestDTO.getSize(); // size 필드 추가
+
+        log.info("Searching products by SKU list: {}, page: {}, size: {}", skuList, page, size);
+
+        // 페이징 정보 전달
+        PageRequestDTO pageRequestDTO = PageRequestDTO.builder()
+                .page(page)
+                .size(size)
+                .build();
+
+        return ResponseEntity.ok(productService.searchBySKU(skuList, pageRequestDTO));
+    }
+
 
     // 조회
     @GetMapping("/{martID}/{productID}")
