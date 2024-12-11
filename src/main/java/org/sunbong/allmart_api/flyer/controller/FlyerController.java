@@ -34,48 +34,6 @@ public class FlyerController {
     }
 
     // 목록
-//    @GetMapping("/list")
-//    public ResponseEntity<PageResponseDTO<FlyerListDTO>> list(
-//            @Validated PageRequestDTO pageRequestDTO
-//    ) {
-//        log.info("=======Flyer List=======");
-//
-//        // 페이지 번호가 0보다 작으면 예외 발생
-//        if (pageRequestDTO.getPage() < 0) {
-//            throw CommonExceptions.LIST_ERROR.get();
-//        }
-//
-//        return ResponseEntity.ok(flyerService.list(pageRequestDTO));
-//    }
-
-//    @GetMapping("/list")
-//    public ResponseEntity<PageResponseDTO<FlyerListDTO>> list(
-//            @Validated PageRequestDTO pageRequestDTO
-//    ) {
-//        log.info("=======Flyer List=======");
-//
-//        // 페이지 번호가 0보다 작으면 예외 발생
-//        if (pageRequestDTO.getPage() < 0) {
-//            throw CommonExceptions.LIST_ERROR.get();
-//        }
-//
-//        PageResponseDTO<FlyerListDTO> response = flyerService.list(pageRequestDTO);
-//
-//        // DTO에 martName 포함
-//        response.getDtoList().forEach(dto -> {
-//            FlyerReadDTO flyerReadDTO = flyerService.readById(dto.getFlyerID());
-//            Flyer flyer = Flyer.builder()
-//                    .mart()
-//                    .build();
-//
-//            if (flyer != null && flyer.getMart() != null) {
-//                dto.setMartName(flyer.getMart().getMartName());
-//            }
-//        });
-//
-//        return ResponseEntity.ok(response);
-//    }
-
     @GetMapping("/list")
     public ResponseEntity<PageResponseDTO<FlyerListDTO>> list(
             @Validated PageRequestDTO pageRequestDTO

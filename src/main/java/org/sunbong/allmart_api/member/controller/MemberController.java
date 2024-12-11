@@ -61,6 +61,7 @@ public class MemberController {
                 "email",memberDTO.getEmail(),
                 "role", memberDTO.getRole() );
 
+
         String accessToken = jWTUtil.createToken(claimMap,accessTime);
         String refreshToken = jWTUtil.createToken(claimMap,refreshTime);
 
@@ -68,6 +69,7 @@ public class MemberController {
         tokenResponseDTO.setAccessToken(accessToken);
         tokenResponseDTO.setRefreshToken(refreshToken);
         tokenResponseDTO.setEmail(memberDTO.getEmail());
+        tokenResponseDTO.setRole(memberDTO.getRole()); // 사용자 유형 설정
 
         return ResponseEntity.ok(tokenResponseDTO);
 
