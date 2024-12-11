@@ -12,7 +12,6 @@ import org.sunbong.allmart_api.common.dto.PageRequestDTO;
 import org.sunbong.allmart_api.common.dto.PageResponseDTO;
 import org.sunbong.allmart_api.order.domain.*;
 import org.sunbong.allmart_api.order.dto.OrderListDTO;
-import org.sunbong.allmart_api.payment.domain.QPayment;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -36,12 +35,10 @@ public class OrderSearchImpl extends QuerydslRepositorySupport implements OrderS
 
         QOrderEntity orderEntity = QOrderEntity.orderEntity;
         QOrderItem orderItem = QOrderItem.orderItem;
-        QPayment payment = QPayment.payment;
 
         // OrderItem을 기준으로 쿼리 작성
         JPQLQuery<OrderItem> query = from(orderItem)
-                .leftJoin(orderItem.order, orderEntity) // OrderEntity와 조인
-                .leftJoin(payment).on(payment.order.eq(orderEntity)); // Payment와 조인
+                .leftJoin(orderItem.order, orderEntity); // OrderEntity와 조인
 
         BooleanBuilder builder = new BooleanBuilder();
         String keyword = pageRequestDTO.getKeyword();
@@ -75,16 +72,15 @@ public class OrderSearchImpl extends QuerydslRepositorySupport implements OrderS
         List<OrderListDTO> dtoList = results.stream().map(tuple -> {
             OrderEntity order = tuple.get(orderEntity);
 
-
             return OrderListDTO.builder()
                     .orderId(order.getOrderID())
                     .customerId(order.getCustomerId())
                     .status(order.getStatus())
                     .totalAmount(order.getTotalAmount() != null ? order.getTotalAmount() : BigDecimal.ZERO)
                     .orderTime(order.getCreatedDate())
+                    .payment(order.getPaymentType())
                     .build();
         }).collect(Collectors.toList());
-
 
         long total = query.fetchCount();
 
@@ -94,5 +90,4 @@ public class OrderSearchImpl extends QuerydslRepositorySupport implements OrderS
                 .pageRequestDTO(pageRequestDTO)
                 .build();
     }
-
 }

@@ -1,7 +1,5 @@
 package org.sunbong.allmart_api.order.repository;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.sunbong.allmart_api.delivery.domain.DeliveryStatus;
 import org.sunbong.allmart_api.order.domain.OrderEntity;
@@ -23,7 +21,7 @@ public interface OrderJpaRepository extends JpaRepository<OrderEntity, Long>, Or
     /**
      * 특정 배달 ID와 연결된 주문 조회
      */
-    List<OrderEntity> findByDeliveryDeliveryID(Long deliveryId);
+    List<OrderEntity> findByDeliveryDeliveryId(Long deliveryId);
 
     /**
      * 특정 고객 ID와 특정 상태의 주문 조회

@@ -4,8 +4,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.sunbong.allmart_api.order.domain.OrderStatus;
-import org.sunbong.allmart_api.product.dto.ProductSummaryDTO;
 
 import java.math.BigDecimal;
 

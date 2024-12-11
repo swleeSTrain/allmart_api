@@ -1,30 +1,32 @@
 package org.sunbong.allmart_api.order.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.sunbong.allmart_api.common.dto.PageRequestDTO;
 import org.sunbong.allmart_api.common.dto.PageResponseDTO;
-import org.sunbong.allmart_api.delivery.repository.DeliveryRepository;
-import org.sunbong.allmart_api.delivery.service.DeliveryService;
-import org.sunbong.allmart_api.order.domain.OrderEntity;
-
-import org.sunbong.allmart_api.order.domain.OrderItem;
-import org.sunbong.allmart_api.order.domain.OrderStatus;
+import org.sunbong.allmart_api.order.domain.*;
 import org.sunbong.allmart_api.order.dto.OrderDTO;
 import org.sunbong.allmart_api.order.dto.OrderItemDTO;
 import org.sunbong.allmart_api.order.dto.OrderListDTO;
+import org.sunbong.allmart_api.order.dto.TemporaryOrderDTO;
 import org.sunbong.allmart_api.order.exception.OrderNotFoundException;
 import org.sunbong.allmart_api.order.repository.OrderItemJpaRepository;
 import org.sunbong.allmart_api.order.repository.OrderJpaRepository;
+import org.sunbong.allmart_api.order.repository.TemporaryOrderRepository;
+import org.sunbong.allmart_api.outbox.domain.OutboxEntity;
+import org.sunbong.allmart_api.outbox.repository.OutboxRepository;
 import org.sunbong.allmart_api.product.domain.Product;
 import org.sunbong.allmart_api.product.exception.ProductNotFoundException;
 import org.sunbong.allmart_api.product.repository.ProductRepository;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -36,7 +38,8 @@ public class OrderServiceImpl implements OrderService {
     private final OrderJpaRepository orderRepository;
     private final OrderItemJpaRepository orderItemRepository;
     private final ProductRepository productRepository;
-    private final DeliveryService deliveryService;
+    private final TemporaryOrderRepository temporaryOrderRepository;
+    private final OutboxRepository outboxRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -74,97 +77,150 @@ public class OrderServiceImpl implements OrderService {
         return orderRepository.searchOrders(status, customerId, pageRequestDTO);
     }
 
+//    @Override
+//    public void changeOrderStatus(Long orderId, OrderStatus newStatus) {
+//        OrderEntity order = orderRepository.findById(orderId)
+//                .orElseThrow(() -> new OrderNotFoundException(orderId));
+//
+//        // 단계별 로깅
+//        log.info("Order Retrieved: {}", order);
+//        log.info("Order CreatedDate Before Check: {}", order.getCreatedDate());
+//
+//        if (order.getCreatedDate() == null) {
+//            throw new IllegalStateException("Order createdDate is null");
+//        }
+//
+//
+//        OrderEntity updatedOrder = order.changeStatus(newStatus);
+//        orderRepository.save(updatedOrder);
+//
+//        log.info("Order CreatedDate After Save: {}", updatedOrder.getCreatedDate());
+//
+//        if (newStatus == OrderStatus.COMPLETED) {
+//            LocalDateTime startTime = order.getCreatedDate().minusHours(2);
+//            LocalDateTime endTime = order.getCreatedDate();
+//
+//            log.info("StartTime: {}, EndTime: {}", startTime, endTime);
+//
+//            deliveryService.processOrdersForDelivery(startTime, endTime);
+//        }
+//    }
+
     @Override
-    public void changeOrderStatus(Long orderId, OrderStatus newStatus) {
-        OrderEntity order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new OrderNotFoundException(orderId));
-
-        // 단계별 로깅
-        log.info("Order Retrieved: {}", order);
-        log.info("Order CreatedDate Before Check: {}", order.getCreatedDate());
-
-        if (order.getCreatedDate() == null) {
-            throw new IllegalStateException("Order createdDate is null");
-        }
-
-
-        OrderEntity updatedOrder = order.changeStatus(newStatus);
-        orderRepository.save(updatedOrder);
-
-        log.info("Order CreatedDate After Save: {}", updatedOrder.getCreatedDate());
-
-        if (newStatus == OrderStatus.COMPLETED) {
-            LocalDateTime startTime = order.getCreatedDate().minusHours(2);
-            LocalDateTime endTime = order.getCreatedDate();
-
-            log.info("StartTime: {}, EndTime: {}", startTime, endTime);
-
-            deliveryService.processOrdersForDelivery(startTime, endTime);
-        }
-    }
-
-    @Override
-    public OrderDTO createOrderFromVoice(String name, int quantity, String userId) {
+    public TemporaryOrderDTO createOrderFromVoice(String name, int quantity, String userId) {
         if (name == null || name.trim().isEmpty()) {
             throw new IllegalArgumentException("Product name cannot be empty");
         }
 
-        // Product 조회
-        Product product = productRepository.findByName(name)
-                .orElseThrow(() -> new ProductNotFoundException("Product not found: " + name));
-
-        // 총 금액 계산 (BigDecimal로 정확하게 처리)
-        BigDecimal totalAmount = product.getPrice().multiply(BigDecimal.valueOf(quantity));
-
-        // OrderEntity 생성 (상태는 대기 중, 총 금액을 미리 계산하여 설정)
-        OrderEntity order = OrderEntity.builder()
+        // TemporaryOrderEntity 생성 및 저장
+        TemporaryOrderEntity temporaryOrder = TemporaryOrderEntity.builder()
                 .customerId(userId)
-                .status(OrderStatus.PENDING)
-                .totalAmount(totalAmount)
-                .delivery(null)
-                .build();
-
-        // OrderEntity 저장
-        order = orderRepository.save(order);
-
-        // OrderItem 생성
-        OrderItem orderItem = OrderItem.builder()
-                .order(order)           // OrderItem에 OrderEntity를 설정
-                .product(product)       // Product 설정
-                .quantity(quantity)     // 수량 설정
-                .unitPrice(product.getPrice())  // 가격 설정
-                .build();
-
-        // OrderItem 저장
-        orderItemRepository.save(orderItem);
-
-        // OrderItem -> OrderItemDTO 변환
-        OrderItemDTO orderItemDTO = OrderItemDTO.builder()
-                .orderItemId(orderItem.getOrderItemID())
-                .productId(product.getProductID())
-                .productName(product.getName())
-                .unitPrice(product.getPrice())
+                .productName(name)
                 .quantity(quantity)
                 .build();
 
-        // OrderEntity -> OrderDTO 변환
-        return OrderDTO.builder()
-                .orderId(order.getOrderID())
-                .customerId(order.getCustomerId())
-                .totalAmount(order.getTotalAmount())
-                .status(order.getStatus().name())
-                .orderTime(order.getCreatedDate())
-                .orderItems(List.of(orderItemDTO)) // 단일 항목 포함
+        TemporaryOrderEntity savedOrder = temporaryOrderRepository.save(temporaryOrder);
+
+        log.info("Temporary order created successfully: {}", savedOrder);
+
+        // TemporaryOrderEntity -> TemporaryOrderDTO 변환
+        return TemporaryOrderDTO.builder()
+                .tempOrderId(savedOrder.getTempOrderID())
+                .customerId(savedOrder.getCustomerId())
+                .productName(savedOrder.getProductName())
+                .quantity(savedOrder.getQuantity())
+                .orderTime(savedOrder.getCreatedDate())
                 .build();
     }
 
+    /**
+     * 처리되지 않은 임시 주문을 정식 주문으로 변환
+     */
+    @Override
+    public List<OrderDTO> processUnprocessedTemporaryOrders() {
+        List<TemporaryOrderEntity> temporaryOrders = temporaryOrderRepository.findByStatus(TemporaryOrderStatus.PENDING);
 
-    private BigDecimal calculateTotalAmount(Long orderId) {
-        List<OrderItem> orderItems = orderItemRepository.findByOrderOrderID(orderId);
-        return orderItems.stream()
-                .map(OrderItem::getTotalPrice)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (temporaryOrders.isEmpty()) {
+            log.info("No unprocessed temporary orders found.");
+            return Collections.emptyList();
+        }
+
+        Map<String, List<TemporaryOrderEntity>> groupedByCustomer = temporaryOrders.stream()
+                .collect(Collectors.groupingBy(TemporaryOrderEntity::getCustomerId));
+
+        List<OrderDTO> processedOrders = new ArrayList<>();
+
+        groupedByCustomer.forEach((customerId, customerOrders) -> {
+            BigDecimal totalAmount = customerOrders.stream()
+                    .map(order -> productRepository.findByName(order.getProductName())
+                            .orElseThrow(() -> new ProductNotFoundException("Product not found: " + order.getProductName()))
+                            .getPrice().multiply(BigDecimal.valueOf(order.getQuantity())))
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            // 정식 주문 생성
+            OrderEntity orderEntity = OrderEntity.builder()
+                    .customerId(customerId)
+                    .totalAmount(totalAmount)
+                    .paymentType(PaymentType.OFFLINE) // 정보취약계층은 항상 OFFLINE
+                    .status(OrderStatus.PENDING)
+                    .build();
+
+            OrderEntity savedOrder = orderRepository.save(orderEntity);
+
+            // Outbox 이벤트 생성
+            OutboxEntity outboxEntity = OutboxEntity.builder()
+                    .eventType("ORDER_CREATED")
+                    .payload(createOrderPayload(savedOrder))
+                    .processed(false)
+                    .order(savedOrder)
+                    .build();
+
+            outboxRepository.save(outboxEntity);
+
+            // 주문 항목 저장
+            customerOrders.forEach(order -> {
+                Product product = productRepository.findByName(order.getProductName())
+                        .orElseThrow(() -> new ProductNotFoundException("Product not found: " + order.getProductName()));
+
+                OrderItem orderItem = OrderItem.builder()
+                        .order(savedOrder)
+                        .product(product)
+                        .quantity(order.getQuantity())
+                        .unitPrice(product.getPrice())
+                        .build();
+
+                orderItemRepository.save(orderItem);
+                order.markAsProcessed();
+            });
+
+            temporaryOrderRepository.saveAll(customerOrders);
+
+            processedOrders.add(OrderDTO.builder()
+                    .orderId(savedOrder.getOrderID())
+                    .customerId(customerId)
+                    .totalAmount(totalAmount)
+                    .status(OrderStatus.PENDING.name())
+                    .build());
+        });
+
+        return processedOrders;
     }
+
+
+    private String createOrderPayload(OrderEntity order) {
+        ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            return objectMapper.writeValueAsString(Map.of(
+                    "orderId", order.getOrderID(),
+                    "customerId", order.getCustomerId(),
+                    "paymentType", "OFFLINE" // 항상 OFFLINE으로 설정
+            ));
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create order payload", e);
+        }
+    }
+
+
     @Override
     public List<OrderDTO> getCustomerCompletedOrders(String customerId) {
         List<OrderEntity> completedOrders = orderRepository.findByCustomerIdAndStatus(customerId, OrderStatus.COMPLETED);
@@ -178,5 +234,32 @@ public class OrderServiceImpl implements OrderService {
                         .orderTime(order.getCreatedDate())
                         .build())
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public void completeOrder(Long orderId) {
+        OrderEntity order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Order not found"));
+
+        // 주문 상태를 COMPLETED로 변경
+        order.changeStatusToCompleted();
+
+        orderRepository.save(order);
+
+        // 아직 처리되지 않은 Outbox 이벤트 조회
+        OutboxEntity outboxEntity = outboxRepository.findByOrderAndEventTypeAndProcessed(order, "ORDER_CREATED", false)
+                .orElseThrow(() -> new IllegalStateException("Unprocessed Outbox entry not found for Order ID: " + orderId));
+
+        // Outbox 이벤트 타입을 완료로 변경
+        outboxEntity.updateEventType("ORDER_COMPLETED");
+
+        // 상태를 초기화 (processed = false)
+        outboxEntity.markAsUnprocessed();
+
+        // Outbox 테이블에 저장
+        outboxRepository.save(outboxEntity);
+
+        // 로그 기록
+        log.info("Order status updated to COMPLETED for Order ID: {}", orderId);
     }
 }

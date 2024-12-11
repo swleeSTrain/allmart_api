@@ -5,19 +5,16 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class OrderDTO {
-    private Long orderId;
+public class TemporaryOrderDTO {
+    private Long tempOrderId;
     private String customerId;
-    private BigDecimal totalAmount;
-    private String status;
+    private String productName;
+    private int quantity;
     private LocalDateTime orderTime;
-    private List<OrderItemDTO> orderItems;
 }

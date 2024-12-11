@@ -5,7 +5,6 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.sunbong.allmart_api.common.domain.BaseEntity;
 import org.sunbong.allmart_api.delivery.domain.DeliveryEntity;
-import org.sunbong.allmart_api.order.exception.OrderStatusChangeException;
 
 import java.math.BigDecimal;
 
@@ -34,25 +33,29 @@ public class OrderEntity extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private OrderStatus status = OrderStatus.PENDING;
 
-    @Column(nullable = false)
-    private int notification;
+//    @Column(nullable = false)
+//    private int notification;
 
     @ManyToOne
     @JoinColumn(name = "deliveryID", nullable = true)
     private DeliveryEntity delivery;
 
+    @Builder.Default
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private PaymentType paymentType = PaymentType.ONLINE;
 
-    public OrderEntity changeStatus(OrderStatus newStatus) {
-        this.status = newStatus; // 현재 객체의 상태만 변경
-        return this; // 새 객체를 생성하지 않고 자기 자신 반환
+    // 상태 변경 메서드
+    public OrderEntity changeStatusToCompleted() {
+        this.status = OrderStatus.COMPLETED;
+        return this;
     }
 
-    // 총 금액 업데이트 메서드
-    public void updateTotalAmount(BigDecimal amount) {
-        this.totalAmount = amount;
-    }
-
-    public void assignDelivery(DeliveryEntity delivery) {
-        this.delivery = delivery;
+    public void changePaymentTypeToOfflineComplete() {
+        if (this.paymentType == PaymentType.OFFLINE) {
+            this.paymentType = PaymentType.OFFLINE_COMPLETE;
+        } else {
+            throw new IllegalStateException("Cannot change payment type to OFFLINE_COMPLETE for a non-offline payment");
+        }
     }
 }
