@@ -90,6 +90,10 @@ public class KakaoMapService {
 
     // 주소를 위도 경도로 변환
     public MartLocationDTO getCoordinates(String address) {
+
+        log.info("=================================");
+        log.info(KAKAO_GEO_API_KEY);
+
         try {
 
             String apiUrl = "https://dapi.kakao.com/v2/local/search/address.json?query=" + address;

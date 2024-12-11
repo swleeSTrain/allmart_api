@@ -77,6 +77,7 @@ public class MemberService {
         return memberDTO;
     }
 
+
     public MemberDTO updateMember(MemberDTO memberDTO) {
         Optional<MemberEntity> result = memberRepository.findById(memberDTO.getEmail());
         MemberEntity memberEntity = result.orElseThrow(() -> MemberExceptions.BAD_AUTH.get());
