@@ -27,7 +27,6 @@ public class Customer extends BaseEntity implements UserDetails {
     @Column(name = "customerID")
     private Long customerID;
 
-    @NotNull
     @Column(columnDefinition = "CHAR(11)", unique = true)
     private String phoneNumber;
 
