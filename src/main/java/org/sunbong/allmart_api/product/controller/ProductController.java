@@ -23,15 +23,16 @@ public class ProductController {
 
     // 포스트맨에서 쿼리에 한글 직접 넣으면 문제생김 인코딩 때문인듯
     // 엘라스틱서치
-    @GetMapping("/elastic")
+    @GetMapping("/{martID}/elastic")
     public ResponseEntity<PageResponseDTO<ProductListDTO>> search(
+            @PathVariable("martID") Long martID,
             @Validated PageRequestDTO pageRequestDTO
     ) {
 
         log.info("=======Product getKeyword: {} =======", pageRequestDTO.getKeyword());
 
         // 검색 서비스 호출
-        PageResponseDTO<ProductListDTO> response = productService.search(pageRequestDTO.getKeyword(), pageRequestDTO);
+        PageResponseDTO<ProductListDTO> response = productService.search(martID, pageRequestDTO.getKeyword(), pageRequestDTO);
 
         return ResponseEntity.ok(response);
     }
