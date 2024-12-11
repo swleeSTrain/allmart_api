@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,15 +23,26 @@ public class ElasticSearchService {
     private final RestTemplate restTemplate = new RestTemplate(); // RestTemplate 인스턴스 생성
 
     // 상품 검색
-    public List<Map<String, Object>> fetchSearchResults(String keyword) {
+    public List<String> getSKUsFromQuery(String keyword) {
         String url = "http://127.0.0.1:8000/search?query=" + keyword;
-        ResponseEntity<Map> response = restTemplate.getForEntity(url, Map.class);
 
-        if (response.getStatusCode().is2xxSuccessful()) {
-            Map<String, Object> body = response.getBody();
-            return (List<Map<String, Object>>) body.get("results");
+        log.info("====================================");
+        log.info(url);
+        log.info("====================================");
+        try {
+            ResponseEntity<Map> response = restTemplate.getForEntity(url, Map.class);
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                // SKU 리스트 추출
+                List<String> skuList = (List<String>) response.getBody().getOrDefault("skuList", Collections.emptyList());
+                log.info("ElasticSearchService - Retrieved SKU list: {}", skuList);
+                return skuList;
+            }
+            log.warn("ElasticSearchService - Empty or invalid response from FastAPI");
+            return Collections.emptyList(); // 빈 리스트 반환
+        } catch (Exception e) {
+            log.error("Error communicating with FastAPI: {}", e.getMessage());
+            return Collections.emptyList(); // 예외 시 빈 리스트 반환
         }
-        throw new RuntimeException("Failed to fetch search results");
     }
 
     // 상품 인덱싱(저장)
