@@ -19,6 +19,7 @@ import org.sunbong.allmart_api.qna.repository.QuestionRepository;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -36,6 +37,7 @@ public class QuestionService {
 
         return answerRepository.readByQno(qno);
     }
+
 
     // 질문 리스트
     public PageResponseDTO<QuestionListDTO> list(PageRequestDTO pageRequestDTO) {
