@@ -21,25 +21,20 @@ public class ProductController {
 
     private final ProductService productService;
 
-    @PostMapping("/search")
-    public ResponseEntity<PageResponseDTO<ProductListDTO>> searchBySKU(
-            @RequestBody SKURequestDTO skuRequestDTO
+    // 포스트맨에서 쿼리에 한글 직접 넣으면 문제생김 인코딩 때문인듯
+    // 엘라스틱서치
+    @GetMapping("/elastic")
+    public ResponseEntity<PageResponseDTO<ProductListDTO>> search(
+            @Validated PageRequestDTO pageRequestDTO
     ) {
-        List<String> skuList = skuRequestDTO.getSkuList();
-        int page = skuRequestDTO.getPage(); // page 필드 추가
-        int size = skuRequestDTO.getSize(); // size 필드 추가
 
-        log.info("Searching products by SKU list: {}, page: {}, size: {}", skuList, page, size);
+        log.info("=======Product getKeyword: {} =======", pageRequestDTO.getKeyword());
 
-        // 페이징 정보 전달
-        PageRequestDTO pageRequestDTO = PageRequestDTO.builder()
-                .page(page)
-                .size(size)
-                .build();
+        // 검색 서비스 호출
+        PageResponseDTO<ProductListDTO> response = productService.search(pageRequestDTO.getKeyword(), pageRequestDTO);
 
-        return ResponseEntity.ok(productService.searchBySKU(skuList, pageRequestDTO));
+        return ResponseEntity.ok(response);
     }
-
 
     // 조회
     @GetMapping("/{martID}/{productID}")

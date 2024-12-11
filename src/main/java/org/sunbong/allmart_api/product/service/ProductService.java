@@ -25,6 +25,7 @@ import org.sunbong.allmart_api.product.dto.ProductListDTO;
 import org.sunbong.allmart_api.product.dto.ProductReadDTO;
 import org.sunbong.allmart_api.product.repository.ProductRepository;
 
+import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -42,9 +43,15 @@ public class ProductService {
 
     private final ElasticSearchService elasticSearchService;
 
-    public PageResponseDTO<ProductListDTO> searchBySKU(List<String> skuList, PageRequestDTO pageRequestDTO) {
+    // 엘라스틱서치
+    public PageResponseDTO<ProductListDTO> search(String query, PageRequestDTO pageRequestDTO) {
 
-        log.info("Service - Searching by SKU list: {}, PageRequestDTO: {}", skuList, pageRequestDTO);
+        List<String> skuList = elasticSearchService.getSKUsFromQuery(query);
+
+        if (skuList.isEmpty()) {
+            log.warn("No SKUs found for query: {}", query);
+            return new PageResponseDTO<>(Collections.emptyList(), pageRequestDTO, 0); // 빈 결과 반환
+        }
 
         return productRepository.searchBySKU(skuList, pageRequestDTO);
     }
