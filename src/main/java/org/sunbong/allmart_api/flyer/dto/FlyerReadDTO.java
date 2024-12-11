@@ -23,6 +23,10 @@ public class FlyerReadDTO {
     private List<String> attachImages;
     private Set<String> audioURL;
 
+    private ProducedVideoDTO producedVideoDTO;
+
     private LocalDateTime createdDate;
     private LocalDateTime modifiedDate;
+
 }
+
