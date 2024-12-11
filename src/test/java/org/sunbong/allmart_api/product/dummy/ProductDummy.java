@@ -20,9 +20,12 @@ import org.sunbong.allmart_api.elasticsearch.ElasticSearchService;
 import org.sunbong.allmart_api.product.dto.ProductAddDTO;
 import org.sunbong.allmart_api.product.service.ProductService;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
+
+
+import java.io.*;
 import java.math.BigDecimal;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -55,9 +58,9 @@ public class ProductDummy {
         // 카테고리 이름 리스트 (순서대로)
         List<String> categoryNames = List.of(
                 "과일", "채소", "쌀/잡곡/견과", "정육/계란류", "수산물/건해산",
-                "우유/유제품", "밀키트/간편식", "김치/반찬/델리", "생수/음료/주류",
-                "커피/원두/차", "면류/통조림", "양념/오일", "과자/간식", "베이커리/잼",
-                "건강식품", "친환경/유기농", "헤어/바디/뷰티", "청소/생활용품",
+                "우유/유제품", "김치/반찬/델리", "생수/음료/주류",
+                "커피/원두/차", "면류/통조림", "양념/오일", "과자/간식",
+                "건강식품", "헤어/바디/뷰티", "청소/생활용품",
                 "주방용품", "생활잡화/공구", "반려동물"
         );
 
@@ -145,49 +148,65 @@ public class ProductDummy {
             String name = (String) productData.get("name");
             String sku = (String) productData.get("sku");
             Integer price = (Integer) productData.get("price");
-            String fileUrl = (String) productData.get("file");
+            String fileUrl = (String) productData.get("file");  // 로컬 경로
             Long categoryID = ((Number) productData.get("categoryID")).longValue();
             Long martID = ((Number) productData.get("martID")).longValue();
 
-            // MockMultipartFile 생성 (fileUrl에서 다운로드)
-            MultipartFile mockFile = createMockMultipartFileFromUrl(fileUrl);
+            try {
+                // MockMultipartFile 생성 (fileUrl에서 다운로드)
+                MultipartFile mockFile = createMockMultipartFileFromUrl(fileUrl);
 
-            // ProductAddDTO 생성
-            ProductAddDTO dto = ProductAddDTO.builder()
-                    .name(name)
-                    .sku(sku)
-                    .price(BigDecimal.valueOf(price))
-                    .files(List.of(mockFile))
-                    .categoryID(categoryID)
-                    .build();
+                // ProductAddDTO 생성
+                ProductAddDTO dto = ProductAddDTO.builder()
+                        .name(name)
+                        .sku(sku)
+                        .price(BigDecimal.valueOf(price))
+                        .files(List.of(mockFile))
+                        .categoryID(categoryID)
+                        .build();
 
-            // 상품 등록
-            Long productId = productService.register(martID, dto); // martID 추가
-            assertNotNull(productId, "Product ID should not be null after registration");
+                // 상품 등록
+                Long productId = productService.register(martID, dto); // martID 추가
+                assertNotNull(productId, "Product ID should not be null after registration");
+
+                // 서비스 계층을 이용하여 Elasticsearch 인덱싱 요청
+                elasticSearchService.indexProduct(name, sku);
+
+            } catch (FileNotFoundException e) {
+                log.error("File not found: {}", fileUrl, e);
+                continue; // 파일이 없으면 해당 데이터를 건너뛰기
+            } catch (Exception e) {
+                log.error("Error while registering product or indexing to Elasticsearch: ", e);
+                // 다른 예외는 로그만 남기고 계속 진행
+            }
         }
     }
 
-    // URL로부터 MockMultipartFile 생성
-    private MockMultipartFile createMockMultipartFileFromUrl(String fileUrl) throws IOException {
-        // URL로부터 파일 데이터 읽기
-        URL url = new URL(fileUrl);
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-        connection.setRequestMethod("GET");
-        connection.connect();
-
-        if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-            throw new IOException("Failed to download file from URL: " + fileUrl);
+    // MockMultipartFile 생성
+    private MockMultipartFile createMockMultipartFileFromUrl(String filePath) throws IOException {
+        // 로컬 파일 객체 생성
+        File file = new File(filePath); // "C:\\path\\to\\file" 형식의 로컬 경로
+        if (!file.exists()) {
+            throw new FileNotFoundException("File not found: " + filePath);
         }
 
-        try (InputStream inputStream = connection.getInputStream()) {
-            // 파일 이름 추출
-            String filename = fileUrl.substring(fileUrl.lastIndexOf("/") + 1);
+        // MIME 타입 추론 (파일 확장자 기준)
+        String mimeType = Files.probeContentType(file.toPath());
+        if (mimeType == null) {
+            mimeType = "application/octet-stream"; // 기본 MIME 타입 설정
+        }
+
+        // InputStream으로 파일 읽기
+        try (InputStream inputStream = new FileInputStream(file)) {
+            // MockMultipartFile 생성 (파일 이름 및 MIME 타입 포함)
             return new MockMultipartFile(
                     "file",
-                    filename,
-                    connection.getContentType(),
+                    file.getName(),
+                    mimeType,
                     inputStream
             );
         }
     }
+
+
 }

@@ -57,21 +57,26 @@ public class MemberService {
 
     public MemberDTO signUp(MemberDTO memberDTO) {
 
-        Mart mart = martRepository.findById(memberDTO.getMartID())
-                .orElseThrow(() -> new IllegalArgumentException("Invalid mart ID"));
-
-        MemberEntity memberEntity = MemberEntity.builder()
+        MemberEntity.MemberEntityBuilder builder = MemberEntity.builder()
                 .email(memberDTO.getEmail())
                 .pw(passwordEncoder.encode(memberDTO.getPw()))
                 .phoneNumber(memberDTO.getPhoneNumber())
-                .role(MemberRole.valueOf(memberDTO.getRole()))
-                .mart(mart)
-                .build();
+                .role(MemberRole.valueOf(memberDTO.getRole()));
 
+        // 마트 정보가 필요한 경우(예: 시스템 관리자가 아닌 경우)
+        if (!memberDTO.getRole().equalsIgnoreCase("SYSTEMADMIN")) {
+            Mart mart = martRepository.findById(memberDTO.getMartID())
+                    .orElseThrow(() -> new IllegalArgumentException("Invalid mart ID"));
+            builder.mart(mart); // 마트 정보 추가
+        }
+
+        // 엔티티 빌드 및 저장
+        MemberEntity memberEntity = builder.build();
         memberRepository.save(memberEntity);
 
         return memberDTO;
     }
+
 
     public MemberDTO updateMember(MemberDTO memberDTO) {
         Optional<MemberEntity> result = memberRepository.findById(memberDTO.getEmail());
