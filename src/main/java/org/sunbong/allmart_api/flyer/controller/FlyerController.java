@@ -4,13 +4,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.sunbong.allmart_api.common.dto.PageRequestDTO;
 import org.sunbong.allmart_api.common.dto.PageResponseDTO;
 import org.sunbong.allmart_api.common.exception.CommonExceptions;
+import org.sunbong.allmart_api.flyer.dto.FlyerAddDTO;
 import org.sunbong.allmart_api.flyer.dto.FlyerListDTO;
 import org.sunbong.allmart_api.flyer.dto.FlyerReadDTO;
 import org.sunbong.allmart_api.flyer.service.FlyerService;
@@ -47,4 +45,27 @@ public class FlyerController {
 
         return ResponseEntity.ok(flyerService.list(pageRequestDTO));
     }
+
+    // 전단지 등록
+    @PostMapping("/register")
+    public ResponseEntity<Long> register(@RequestBody FlyerAddDTO flyerAddDTO) {
+        log.info("Registering flyer: {}", flyerAddDTO);
+        try {
+            Long flyerId = flyerService.register(flyerAddDTO);
+               return ResponseEntity.ok(flyerId);
+        } catch (Exception e) {
+            log.error("Error registering flyer: ", e);
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+//    // 전단지 조회
+//    @GetMapping("/{id}")
+//    public ResponseEntity<FlyerReadDTO> readById(@PathVariable Long id) {
+//        log.info("Fetching flyer with ID: {}", id);
+//        FlyerReadDTO flyerReadDTO = flyerService.readById(id);
+//        return ResponseEntity.ok(flyerReadDTO);
+//    }
+
+
 }
