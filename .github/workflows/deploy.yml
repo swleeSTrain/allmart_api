@@ -1,5 +1,5 @@
 name: CI/CD Pipeline for Spring Boot on Amazon Linux
-
+#메인푸시할때 실행
 on:
   push:
     branches:
