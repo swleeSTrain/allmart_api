@@ -7,6 +7,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.sunbong.allmart_api.board.dto.BoardPostAddDTO;
+import org.sunbong.allmart_api.board.dto.BoardPostEditDTO;
 import org.sunbong.allmart_api.board.dto.BoardPostListDTO;
 import org.sunbong.allmart_api.board.dto.BoardPostReadDTO;
 import org.sunbong.allmart_api.board.service.BoardPostService;
@@ -59,7 +60,7 @@ public class BoardController {
     //Put 요청으로 수정
     @PutMapping("{bno}")
     public ResponseEntity<Long> updatePost(@PathVariable("bno") Long bno,
-                                           @ModelAttribute BoardPostAddDTO dto,
+                                           @ModelAttribute BoardPostEditDTO dto,
                                            @RequestParam(value = "files", required = false)List<MultipartFile> files) {
         boardPostService.updatePost(bno,dto,files);
         return ResponseEntity.ok(dto.getBno());

@@ -3,6 +3,7 @@ package org.sunbong.allmart_api.board.domain;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.BatchSize;
+import org.sunbong.allmart_api.common.domain.BaseEntity;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -13,7 +14,6 @@ import java.util.Set;
 @NoArgsConstructor
 @Getter
 @ToString
-
 public class BoardPost extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

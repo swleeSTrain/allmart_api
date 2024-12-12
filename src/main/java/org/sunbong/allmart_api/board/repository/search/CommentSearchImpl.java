@@ -52,8 +52,8 @@ public class CommentSearchImpl extends QuerydslRepositorySupport implements Comm
                         .cno(comment.getCno())
                         .content(comment.getContent())
                         .writer(comment.getWriter())
-                        .createTime(comment.getCreateTime())
-                        .updateTime(comment.getUpdateTime())
+                        .createDate(comment.getCreatedDate())
+                        .modifyDate(comment.getModifiedDate())
                         .boardPostBno(comment.getBoardPost().getBno())  // 게시물 번호만 포함
                         .build())
                 .collect(Collectors.toList());
