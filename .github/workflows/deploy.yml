@@ -3,8 +3,10 @@ name: CI/CD Pipeline for Spring Boot on Amazon Linux
 on:
   push:
     branches:
-      - master
-
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build:
@@ -37,21 +39,25 @@ jobs:
         run: |
           echo "${{ secrets.ENV_CONTENT }}" > .env
 
-      # 5. Gradle 빌드 및 테스트 실행
+      # 5. gradlew에 실행 권한 부여
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      # 6. Gradle 빌드 및 테스트 실행
       - name: Build with Gradle
         run: ./gradlew build --no-daemon
 
       - name: Run Tests
         run: ./gradlew test --no-daemon
 
-      # 6. 빌드 결과물 업로드 (JAR 파일)
+      # 7. 빌드 결과물 업로드 (JAR 파일)
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
           name: spring-boot-app
           path: build/libs/*.jar
 
-      # 7. .env 파일 업로드
+      # 8. .env 파일 업로드
       - name: Upload .env file
         uses: actions/upload-artifact@v3
         with:
