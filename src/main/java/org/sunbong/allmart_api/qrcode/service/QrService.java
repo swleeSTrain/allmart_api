@@ -9,11 +9,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.sunbong.allmart_api.common.util.CustomFileUtil;
 
 
-import java.io.File;
-import java.nio.file.FileSystems;
-import java.nio.file.Path;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.util.*;
 
 @Service
@@ -22,31 +22,35 @@ import java.util.*;
 @RequiredArgsConstructor
 public class QrService {
 
-    private static final String UPLOAD_DIR = "C:/upload/";
+    private final CustomFileUtil customFileUtil;
 
     public String generateQRCodeForCustomURL(String customUrl) {
         try {
             log.info("QR 코드 생성 시작: URL = {}", customUrl);
 
+            // QR 코드 생성 설정
             Map<EncodeHintType, Object> hints = new HashMap<>();
             hints.put(EncodeHintType.CHARACTER_SET, "UTF-8");
 
             String fileName = UUID.randomUUID().toString() + ".png";
-            String filePath = UPLOAD_DIR + fileName;
 
             QRCodeWriter qrCodeWriter = new QRCodeWriter();
             BitMatrix bitMatrix = qrCodeWriter.encode(customUrl, BarcodeFormat.QR_CODE, 300, 300, hints);
 
-            File directory = new File(UPLOAD_DIR);
-            if (!directory.exists() && !directory.mkdirs()) {
-                throw new RuntimeException("디렉토리 생성 실패");
-            }
+            // QR 코드를 ByteArrayOutputStream에 저장
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            MatrixToImageWriter.writeToStream(bitMatrix, "PNG", outputStream);
 
-            Path path = FileSystems.getDefault().getPath(filePath);
-            MatrixToImageWriter.writeToPath(bitMatrix, "PNG", path);
+            // S3에 업로드
+            byte[] qrCodeBytes = outputStream.toByteArray();
+            ByteArrayInputStream inputStream = new ByteArrayInputStream(qrCodeBytes);
+            customFileUtil.saveFilesToS3(fileName, inputStream, qrCodeBytes.length, "image/png");
 
-            log.info("QR 코드 생성 성공: {}", filePath);
-            return fileName;
+            // 업로드된 파일의 URL 반환
+            String fileUrl = customFileUtil.getQrUrl(fileName);
+            log.info("QR 코드 생성 및 S3 업로드 성공: {}", fileUrl);
+            return fileUrl;
+
         } catch (Exception e) {
             log.error("QR 코드 생성 실패", e);
             return null;

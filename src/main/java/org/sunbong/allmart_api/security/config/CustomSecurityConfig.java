@@ -75,15 +75,5 @@ public class CustomSecurityConfig implements WebMvcConfigurer {
 
     }
 
-    @Override
-    public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // 이미지 요청을 처리할 경로
-        registry.addResourceHandler("/uploads/**")
-                .addResourceLocations("file:///C:/upload/"); // 실제 업로드 경로
-
-    }
-
-
-
 
 }
