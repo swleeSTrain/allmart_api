@@ -1,6 +1,7 @@
 package org.sunbong.allmart_api.flyer.domain;
 
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.*;
 import org.sunbong.allmart_api.common.domain.BaseEntity;
@@ -39,9 +40,11 @@ public class ProducedVideo extends BaseEntity {
     @Column(length = 500)
     private String memo; // 메모 (비고)
 
+
     // 1:1 관계 설정
     @OneToOne
-    @JoinColumn(name = "flyer_id", nullable = false)
+    @JoinColumn(name = "flyer_id")
+    @JsonBackReference
     private Flyer flyer;
 
     public void setFlyer(Flyer flyer) {

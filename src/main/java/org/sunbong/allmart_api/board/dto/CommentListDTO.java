@@ -15,7 +15,7 @@ public class CommentListDTO {
     private Long cno;
     private String writer;
     private String content;
-    private LocalDateTime createTime;  // 생성날짜
-    private LocalDateTime updateTime;  // 수정날짜
+    private LocalDateTime createDate;  // 생성날짜
+    private LocalDateTime modifyDate;  // 수정날짜
     private Long boardPostBno;         // 게시물 번호만 포함
 }

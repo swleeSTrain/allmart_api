@@ -1,9 +1,11 @@
 package org.sunbong.allmart_api.flyer.domain;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.BatchSize;
 import org.sunbong.allmart_api.common.domain.BaseEntity;
+import org.sunbong.allmart_api.mart.domain.Mart;
 import org.sunbong.allmart_api.product.domain.ProductImage;
 
 import java.util.ArrayList;
@@ -17,7 +19,7 @@ import java.util.Set;
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
-@ToString(callSuper = true, exclude = {"attachImages", "audioURL","producedVideo"})
+@ToString(callSuper = true, exclude = {"attachImages", "audioURL","producedVideo", "mart"})
 public class Flyer extends BaseEntity {
 
     @Id
@@ -44,8 +46,14 @@ public class Flyer extends BaseEntity {
     private List<FlyerImage> attachImages = new ArrayList<>();
 
     // 1:1 관계 설정
-    @OneToOne(mappedBy = "flyer", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToOne(mappedBy = "flyer", cascade = CascadeType.ALL, orphanRemoval = true ,fetch = FetchType.EAGER)
+    @JsonManagedReference
     private ProducedVideo producedVideo;
+
+
+    @ManyToOne
+    @JoinColumn(name="martID", nullable = false, referencedColumnName = "martID")
+    private Mart mart;
 
 
     public void addImage(String filename) {
@@ -69,5 +77,7 @@ public class Flyer extends BaseEntity {
         this.producedVideo = producedVideo;
         producedVideo.setFlyer(this);
     }
+
+
 
 }

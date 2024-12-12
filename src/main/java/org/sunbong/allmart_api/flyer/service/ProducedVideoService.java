@@ -6,6 +6,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.sunbong.allmart_api.common.dto.PageRequestDTO;
 import org.sunbong.allmart_api.common.dto.PageResponseDTO;
+import org.sunbong.allmart_api.common.util.CustomFileUtil;
 import org.sunbong.allmart_api.flyer.domain.ProducedVideo;
 import org.sunbong.allmart_api.flyer.dto.FlyerListDTO;
 import org.sunbong.allmart_api.flyer.dto.ProducedVideoListDTO;
@@ -16,9 +17,13 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class ProducedVideoService {
+
+    private final CustomFileUtil customFileUtil;
+
     private final ProducedVideoRepository producedVideoRepository;
 
     public ProducedVideo save(ProducedVideo video) {
+
         return producedVideoRepository.save(video);
     }
 

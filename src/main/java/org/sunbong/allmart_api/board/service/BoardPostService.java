@@ -6,24 +6,25 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.sunbong.allmart_api.board.domain.BoardPost;
 import org.sunbong.allmart_api.board.dto.BoardPostAddDTO;
+import org.sunbong.allmart_api.board.dto.BoardPostEditDTO;
 import org.sunbong.allmart_api.board.dto.BoardPostListDTO;
 import org.sunbong.allmart_api.board.dto.BoardPostReadDTO;
 import org.sunbong.allmart_api.board.repository.BoardPostRepository;
 import org.sunbong.allmart_api.common.dto.PageRequestDTO;
 import org.sunbong.allmart_api.common.dto.PageResponseDTO;
 import org.sunbong.allmart_api.common.exception.CommonExceptions;
+import org.sunbong.allmart_api.common.util.CustomFileUtil;
 
 import java.util.List;
 import java.util.Map;
 
-import static org.sunbong.allmart_api.board.util.UploadUtil.saveFileAndCreateThumbnail;
 
 @Service
 @RequiredArgsConstructor
 public class BoardPostService {
 
     private final BoardPostRepository boardRepository;
-
+    private final CustomFileUtil fileUtil;
     public PageResponseDTO<BoardPostReadDTO> readByBno(Long bno, PageRequestDTO pageRequestDTO) {
         // 페이지 번호가 0보다 작으면 예외 발생
         if (pageRequestDTO.getPage() < 0) {
@@ -48,51 +49,43 @@ public class BoardPostService {
                 .title(boardPostDTO.getTitle())
                 .writer(boardPostDTO.getWriter())
                 .content(boardPostDTO.getContent())
-                .isPinned(boardPostDTO.isPinned()) // 상단 고정 여부 추가
+                .isPinned(boardPostDTO.isPinned())
                 .build();
 
-
-        if(boardPostDTO.getFiles() != null && !boardPostDTO.getFiles().isEmpty()) {
-            for (MultipartFile file : files) {
-                Map<String, String> fileData = saveFileAndCreateThumbnail(file);
-                String savedFileName = fileData.get("savedFileName");
-                String thumbnailFileName = fileData.get("thumbnailFileName");
-                post.addBoardAttachFile(savedFileName); // Notice 엔티티에 파일 추가
-                post.addBoardAttachFile(thumbnailFileName);
-            }
+        if (files != null && !files.isEmpty()) {
+            List<String> savedFileNames = fileUtil.saveFiles(files);
+            savedFileNames.forEach(post::addBoardAttachFile);
         }
 
         boardRepository.save(post);
         return boardPostDTO;
     }
 
-    public BoardPostAddDTO updatePost(Long bno, BoardPostAddDTO boardPostDTO,
-                                      @RequestParam(required = false) List<MultipartFile> files) {
+    public BoardPostEditDTO updatePost(Long bno, BoardPostEditDTO boardPostDTO,
+                                       @RequestParam(required = false) List<MultipartFile> files) {
         BoardPost post = boardRepository.findById(bno)
                 .orElseThrow(() -> new IllegalArgumentException("게시글이 존재하지 않습니다."));
 
-//        BoardPost originpost = BoardPost.builder()
-//                .bno(post.getBno())
-//                .title(post.getTitle())
-//                .author(post.getAuthor())
-//                .content(post.getContent())
-//                .createTime(post.getCreateTime())
-//                .build();
         BoardPost update = post.toBuilder()
                 .title(boardPostDTO.getTitle())
                 .content(boardPostDTO.getContent())
-                .isPinned(boardPostDTO.isPinned()) // 상단 고정 여부 추가
+                .isPinned(boardPostDTO.isPinned())
                 .build();
 
-        if(boardPostDTO.getFiles() != null && !boardPostDTO.getFiles().isEmpty()) {
-            for (MultipartFile file : files) {
-                Map<String, String> fileData = saveFileAndCreateThumbnail(file);
-                String savedFileName = fileData.get("savedFileName");
-                String thumbnailFileName = fileData.get("thumbnailFileName");
-                update.addBoardAttachFile(savedFileName); // Notice 엔티티에 파일 추가
-                update.addBoardAttachFile(thumbnailFileName);
-            }
+        List<String> retainedFiles = boardPostDTO.getExistingFileNames();
+
+        if (retainedFiles != null) {
+            post.getBoardAttachFiles()
+                    .removeIf(file -> !retainedFiles.contains(file.getFileName()));
+        } else {
+            post.clearBoardAttachFiles();
         }
+
+        if (files != null && !files.isEmpty()) {
+            List<String> newFileNames = fileUtil.saveFiles(files);
+            newFileNames.forEach(update::addBoardAttachFile);
+        }
+
         boardRepository.save(update);
         return boardPostDTO;
     }
@@ -116,8 +109,9 @@ public class BoardPostService {
 
 
         //저장
+        Long deleteBno= delete.getBno();
         boardRepository.save(delete);
-        return delete.getBno() + "번 게시물이 삭제되었습니다.";
+        return deleteBno + "번 게시물이 삭제되었습니다.";
     }
     // 게시글 상단 고정/해제
     public void togglePinPost(Long bno) {
