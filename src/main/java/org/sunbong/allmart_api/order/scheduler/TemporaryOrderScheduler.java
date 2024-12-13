@@ -16,7 +16,7 @@ public class TemporaryOrderScheduler {
     /**
      * 매일 10시와 16시에 처리되지 않은 임시 주문을 정식 주문으로 변환
      */
-    @Scheduled(cron = "0 55 11,16 * * ?")
+    @Scheduled(cron = "0 52 17,16 * * ?")
     public void processTemporaryOrders() {
         log.info("Scheduled task started for processing temporary orders.");
         orderService.processUnprocessedTemporaryOrders();

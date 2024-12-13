@@ -20,15 +20,26 @@ public class OutboxEventListener {
     private final OutboxRepository outboxRepository;
     private final DeliveryService deliveryService;
 
-    @KafkaListener(topics = "jindb.jindb.tbl_outbox", groupId = "delivery-service")
-    @Transactional
+    @KafkaListener(topics = "jindb.jindb.tbl_outbox", groupId = "delivery-service", concurrency = "1")
     public void handleOutboxEvent(String message) {
         try {
             // Kafka 메시지 JSON 파싱
             JsonNode root = objectMapper.readTree(message);
+
             Long outboxId = root.get("id").asLong();
+
             String eventType = root.get("event_type").asText();
+
             String payload = root.get("payload").asText();
+
+            // Outbox 상태 확인
+            OutboxEntity outboxEntity = outboxRepository.findById(outboxId)
+                    .orElseThrow(() -> new IllegalArgumentException("Outbox entry not found for ID: " + outboxId));
+
+            if (outboxEntity.isProcessed()) {
+                log.warn("Outbox event already processed: Outbox ID: {}", outboxId);
+                return; // 이미 처리된 이벤트는 무시
+            }
 
             // Payload 내부 JSON 파싱
             JsonNode payloadNode = objectMapper.readTree(payload);
@@ -41,8 +52,6 @@ public class OutboxEventListener {
                 log.info("Processing Outbox event: ID: {}, Type: {}, Order ID: {}", outboxId, eventType, orderId);
 
                 // Outbox 상태를 처리 완료로 업데이트
-                OutboxEntity outboxEntity = outboxRepository.findById(outboxId)
-                        .orElseThrow(() -> new IllegalArgumentException("Outbox entry not found for ID: " + outboxId));
                 outboxEntity.markAsProcessed();
                 outboxRepository.save(outboxEntity);
 

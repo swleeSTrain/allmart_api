@@ -39,11 +39,19 @@ public class DriverEntity {
         this.currentDeliveryCount++;
     }
 
-    public void decreaseCurrentDeliveryCount() {
-        if (this.currentDeliveryCount > 0) {
-            this.currentDeliveryCount--;
+    // 배달 할당 처리
+    public void decrementCurrentDeliveryCount() {
+        if (this.currentDeliveryCount <= 0) {
+            throw new IllegalStateException("Current delivery count cannot be negative.");
+        }
+        this.currentDeliveryCount--;
+    }
+
+    public void incrementCurrentDeliveryCount() {
+        if (this.currentDeliveryCount < maxDeliveryCount) {
+            this.currentDeliveryCount++;
         } else {
-            throw new IllegalStateException("Current delivery count is already zero");
+            throw new IllegalStateException("Driver has reached the max delivery count.");
         }
     }
 }

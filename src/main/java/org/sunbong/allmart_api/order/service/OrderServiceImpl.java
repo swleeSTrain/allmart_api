@@ -67,6 +67,7 @@ public class OrderServiceImpl implements OrderService {
                 .totalAmount(order.getTotalAmount())
                 .orderTime(order.getCreatedDate())
                 .orderItems(orderItemDTOs)
+                .payment(order.getPaymentType())
                 .build();
     }
 

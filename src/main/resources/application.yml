@@ -3,18 +3,17 @@ spring:
     name: allmart_api
   datasource:
     driver-class-name: org.mariadb.jdbc.Driver
-#    url: jdbc:mariadb://localhost:13306/test
-    url: ${DATABASE_URL}
-    username: ${DATABASE_USERNAME}
-    password: ${DATABASE_PASSWORD}
-
+    url: jdbc:mariadb://localhost:3306/jindb # Docker MariaDB Source
+    username: useruser
+    password: useruser
     hikari:
       minimum-idle: 2
-      maximum-pool-size: 5
-      connection-timeout: 5000
+      maximum-pool-size: 10
+      connection-timeout: 10000
 
   jpa:
     hibernate:
+      connection.isolation: 2 # READ COMMITTED
       ddl-auto: update
       dialect: org.hibernate.dialect.MariaDB103Dialect
     show-sql: true
@@ -29,6 +28,28 @@ spring:
       location: ${org.allmart_api.upload.path}  # 업로드 경로를 org.sunbong.upload.path와 연동
   config:
     import: optional:file:.env[.properties]
+
+  kafka:
+    bootstrap-servers: localhost:10000,localhost:10001,localhost:10002
+    consumer:
+      group-id: delivery-service-group
+      auto-offset-reset: earliest
+      enable-auto-commit: true
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      properties:
+        fetch.max.bytes: 200000000 # 약 200MB
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      properties:
+        max.request.size: 200000000 # 약 200MB
+    admin:
+      fail-fast: true
+    properties:
+      max.poll.records: 500
+    topics:
+      dlq: jindb.jindb.tbl_outbox.dlq
 
 org:
   allmart_api:

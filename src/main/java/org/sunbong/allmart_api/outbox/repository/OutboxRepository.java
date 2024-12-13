@@ -16,7 +16,11 @@ import java.util.Optional;
 
 public interface OutboxRepository extends JpaRepository<OutboxEntity, Long> {
     // 특정 주문과 관련된 처리되지 않은 이벤트 조회
-    List<OutboxEntity> findByOrderAndProcessed(OrderEntity order, boolean processed);
+    Optional<OutboxEntity> findByOrderAndEventTypeAndProcessed(OrderEntity order, String eventType, boolean processed);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT e FROM OutboxEntity e WHERE e.id = :id")
+    Optional<OutboxEntity> findByIdForUpdate(Long id);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT e FROM OutboxEntity e WHERE e.processed = false ORDER BY e.createdDate ASC")
@@ -26,6 +30,4 @@ public interface OutboxRepository extends JpaRepository<OutboxEntity, Long> {
     @Modifying
     @Query("DELETE FROM OutboxEntity e WHERE e.processed = true AND e.createdDate < :beforeDate")
     int deleteByProcessedTrueAndCreatedDateBefore(LocalDateTime beforeDate);
-
-    Optional<OutboxEntity> findByOrderAndEventTypeAndProcessed(OrderEntity order, String eventType, boolean processed);
 }

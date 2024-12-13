@@ -117,8 +117,8 @@ public class ProductService {
 
         inventoryRepository.save(inventory);
 
-        // Elasticsearch에 상품 이름 인덱싱
-        elasticSearchService.indexProduct(dto.getName(), dto.getSku());
+//        // Elasticsearch에 상품 이름 인덱싱
+//        elasticSearchService.indexProduct(dto.getName(), dto.getSku());
 
         return savedProduct.getProductID();
     }

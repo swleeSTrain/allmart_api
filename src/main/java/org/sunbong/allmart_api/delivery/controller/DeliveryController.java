@@ -1,24 +1,30 @@
 package org.sunbong.allmart_api.delivery.controller;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.log4j.Log4j2;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import org.sunbong.allmart_api.delivery.dto.DeliveryStatusUpdateDTO;
+import org.sunbong.allmart_api.delivery.domain.DeliveryStatus;
 import org.sunbong.allmart_api.delivery.service.DeliveryService;
-import org.sunbong.allmart_api.order.dto.OrderEvent;
+
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/delivery")
+@RequestMapping("/api/v1/delivery")
 public class DeliveryController {
 
     private final DeliveryService deliveryService;
 
-    @PatchMapping("/status")
-    public ResponseEntity<Void> updateDeliveryStatus(@RequestBody @Validated DeliveryStatusUpdateDTO dto) {
-        deliveryService.updateDeliveryStatus(dto.getDeliveryId(), dto.getStatus());
+    @GetMapping("/status-counts")
+    public ResponseEntity<Map<DeliveryStatus, Long>> getDeliveryStatusCounts() {
+        return ResponseEntity.ok(deliveryService.getDeliveryStatusCounts());
+    }
+
+    @PatchMapping("/update-status")
+    public ResponseEntity<Void> updateDeliveryStatus(@RequestBody Map<String, Object> payload) {
+        Long deliveryId = Long.valueOf(payload.get("deliveryId").toString());
+        DeliveryStatus newStatus = DeliveryStatus.valueOf(payload.get("status").toString());
+        deliveryService.updateDeliveryStatus(deliveryId, newStatus);
         return ResponseEntity.ok().build();
     }
 }
