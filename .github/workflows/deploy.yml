@@ -75,8 +75,11 @@ jobs:
           # 다운로드한 JAR 파일 확인
           ls -al
           
-          # JAR 파일 전송
-          scp -o StrictHostKeyChecking=no -i private_key *.jar ${USERNAME}@${HOST}:/opt/myapp/app.jar
+          # JAR 파일 이름 변경 및 전송
+          JAR_FILE=$(ls *.jar | grep -v plain)
+          
+          scp -o StrictHostKeyChecking=no -i private_key ${JAR_FILE} ${USERNAME}@${HOST}:/opt/myapp/app.jar
+          
           
           # EC2에서 배포 스크립트 실행
           ssh -o StrictHostKeyChecking=no -i private_key ${USERNAME}@${HOST} << EOF
@@ -88,9 +91,6 @@ jobs:
 
             # 기존 프로세스 중지 (프로세스 이름으로 변경해주세요)
             sudo pkill -f "java -jar /opt/myapp/app.jar" || true
-          
-            # 애플리케이션 디렉토리로 이동 및 서비스 재시작
-            sudo mkdir -p /opt/myapp
           
             # systemd 서비스 재시작 (myapp.service는 사전에 설정되어 있어야 함)
             sudo systemctl daemon-reload
