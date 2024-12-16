@@ -1,4 +1,4 @@
-name: CI/CD Pipeline for Spring Boot on Amazon Linux
+name: CI/CD Pipeline for Spring Boot on Amazon Linux (No Docker)
 
 on:
   push:
@@ -48,9 +48,10 @@ jobs:
         with:
           name: spring-boot-app
           path: build/libs/*.jar
+
   deploy:
     name: Deploy to EC2
-    needs: build # 빌드 작업이 성공적으로 완료된 후 실행됨
+    needs: build
     runs-on: ubuntu-latest
 
     steps:
@@ -59,7 +60,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: spring-boot-app
-          path: . # 다운로드 경로 설정
+          path: . # 현재 디렉토리로 다운로드
 
       # 2. EC2에 파일 전송 및 배포 실행
       - name: Deploy to EC2 instance
@@ -75,22 +76,22 @@ jobs:
           ls -al
           
           # JAR 파일 전송
-          scp -o StrictHostKeyChecking=no -i private_key *.jar ${USERNAME}@${HOST}:~/app/app.jar
-
+          scp -o StrictHostKeyChecking=no -i private_key *.jar ${USERNAME}@${HOST}:/opt/myapp/app.jar
+          
           # EC2에서 배포 스크립트 실행
           ssh -o StrictHostKeyChecking=no -i private_key ${USERNAME}@${HOST} << EOF
             sudo yum update -y
             sudo yum install -y java-17-amazon-corretto-devel
 
             # 환경 변수 파일 생성
-            echo "${ENV_CONTENT}" > /home/ec2-user/app/.env
+            echo "${ENV_CONTENT}" > /opt/myapp/.env
 
+            # 기존 프로세스 중지 (프로세스 이름으로 변경해주세요)
+            sudo pkill -f "java -jar /opt/myapp/app.jar" || true
+          
             # 애플리케이션 디렉토리로 이동 및 서비스 재시작
             sudo mkdir -p /opt/myapp
-            sudo mv ~/app/app.jar /opt/myapp/app.jar
           
-            sudo mv /home/ec2-user/app/.env /opt/myapp/.env
-
             # systemd 서비스 재시작 (myapp.service는 사전에 설정되어 있어야 함)
             sudo systemctl daemon-reload
             sudo systemctl restart myapp.service || sudo systemctl start myapp.service
