@@ -1,30 +1,41 @@
 package org.sunbong.allmart_api.delivery.controller;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.web.bind.annotation.*;
 import org.sunbong.allmart_api.delivery.domain.DeliveryStatus;
 import org.sunbong.allmart_api.delivery.service.DeliveryService;
+import org.sunbong.allmart_api.delivery.service.DeliveryStatusService;
 
 import java.util.Map;
 
 @RestController
-@RequiredArgsConstructor
 @RequestMapping("/api/v1/delivery")
+@RequiredArgsConstructor
+@Log4j2
 public class DeliveryController {
 
     private final DeliveryService deliveryService;
+    private final DeliveryStatusService deliveryStatusService;
 
-    @GetMapping("/status-counts")
-    public ResponseEntity<Map<DeliveryStatus, Long>> getDeliveryStatusCounts() {
-        return ResponseEntity.ok(deliveryService.getDeliveryStatusCounts());
+    /**
+     * 배달 상태 변경
+     * @param deliveryId 배달 ID
+     * @param newStatus 새로운 상태
+     */
+    @PutMapping("/{deliveryId}/status")
+    public void updateDeliveryStatus(@PathVariable Long deliveryId, @RequestParam DeliveryStatus newStatus) {
+        log.info("Request to update delivery status: Delivery ID={}, New Status={}", deliveryId, newStatus);
+        deliveryService.updateDeliveryStatus(deliveryId, newStatus);
     }
 
-    @PatchMapping("/update-status")
-    public ResponseEntity<Void> updateDeliveryStatus(@RequestBody Map<String, Object> payload) {
-        Long deliveryId = Long.valueOf(payload.get("deliveryId").toString());
-        DeliveryStatus newStatus = DeliveryStatus.valueOf(payload.get("status").toString());
-        deliveryService.updateDeliveryStatus(deliveryId, newStatus);
-        return ResponseEntity.ok().build();
+    /**
+     * 실시간 배달 상태 데이터 조회
+     * @return 상태별 배달 건수
+     */
+    @GetMapping("/status-count")
+    public Map<DeliveryStatus, Long> getRealTimeDeliveryStatus() {
+        log.info("Request to fetch real-time delivery status count");
+        return deliveryStatusService.getDeliveryStatusCount();
     }
 }

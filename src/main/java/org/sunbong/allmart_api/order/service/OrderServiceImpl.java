@@ -162,21 +162,14 @@ public class OrderServiceImpl implements OrderService {
             OrderEntity orderEntity = OrderEntity.builder()
                     .customerId(customerId)
                     .totalAmount(totalAmount)
-                    .paymentType(PaymentType.OFFLINE) // 정보취약계층은 항상 OFFLINE
+                    .paymentType(PaymentType.OFFLINE)
                     .status(OrderStatus.PENDING)
                     .build();
 
             OrderEntity savedOrder = orderRepository.save(orderEntity);
 
             // Outbox 이벤트 생성
-            OutboxEntity outboxEntity = OutboxEntity.builder()
-                    .eventType("ORDER_CREATED")
-                    .payload(createOrderPayload(savedOrder))
-                    .processed(false)
-                    .order(savedOrder)
-                    .build();
-
-            outboxRepository.save(outboxEntity);
+            saveOutboxEvent("ORDER_CREATED", savedOrder, createOrderPayload(savedOrder));
 
             // 주문 항목 저장
             customerOrders.forEach(order -> {
@@ -207,6 +200,19 @@ public class OrderServiceImpl implements OrderService {
         return processedOrders;
     }
 
+    private void saveOutboxEvent(String eventType, OrderEntity order, String payload) {
+        OutboxEntity outboxEntity = OutboxEntity.builder()
+                .eventType(eventType)
+                .order(order)
+                .payload(payload)
+                .processed(false) // Kafka 처리 전
+                .build();
+
+        outboxRepository.save(outboxEntity);
+
+        log.info("Outbox event created: EventType={}, OrderID={}, Payload={}", eventType, order.getOrderID(), payload);
+    }
+
 
     private String createOrderPayload(OrderEntity order) {
         ObjectMapper objectMapper = new ObjectMapper();
@@ -214,13 +220,12 @@ public class OrderServiceImpl implements OrderService {
             return objectMapper.writeValueAsString(Map.of(
                     "orderId", order.getOrderID(),
                     "customerId", order.getCustomerId(),
-                    "paymentType", "OFFLINE" // 항상 OFFLINE으로 설정
+                    "paymentType", order.getPaymentType().toString()
             ));
         } catch (Exception e) {
             throw new RuntimeException("Failed to create order payload", e);
         }
     }
-
 
     @Override
     public List<OrderDTO> getCustomerCompletedOrders(String customerId) {
@@ -244,23 +249,22 @@ public class OrderServiceImpl implements OrderService {
 
         // 주문 상태를 COMPLETED로 변경
         order.changeStatusToCompleted();
-
         orderRepository.save(order);
 
-        // 아직 처리되지 않은 Outbox 이벤트 조회
-        OutboxEntity outboxEntity = outboxRepository.findByOrderAndEventTypeAndProcessed(order, "ORDER_CREATED", false)
-                .orElseThrow(() -> new IllegalStateException("Unprocessed Outbox entry not found for Order ID: " + orderId));
-
-        // Outbox 이벤트 타입을 완료로 변경
-        outboxEntity.updateEventType("ORDER_COMPLETED");
-
-        // 상태를 초기화 (processed = false)
-        outboxEntity.markAsUnprocessed();
-
-        // Outbox 테이블에 저장
-        outboxRepository.save(outboxEntity);
-
-        // 로그 기록
         log.info("Order status updated to COMPLETED for Order ID: {}", orderId);
+
+        // Outbox 이벤트 업데이트
+        updateOutboxEventType("ORDER_COMPLETED", orderId, createOrderPayload(order));
+    }
+
+    private void updateOutboxEventType(String newEventType, Long orderId, String payload) {
+        OutboxEntity existingOutbox = outboxRepository.findByOrder_OrderID(orderId)
+                .orElseThrow(() -> new IllegalStateException("No Outbox event found for Order ID: " + orderId));
+
+        existingOutbox.updateEventType(newEventType); // 이벤트 타입 변경
+        existingOutbox.updatePayload(payload); // 새로운 페이로드 저장
+        outboxRepository.save(existingOutbox); // 변경 사항 저장
+
+        log.info("Outbox event updated: EventType={}, OrderID={}", newEventType, orderId);
     }
 }

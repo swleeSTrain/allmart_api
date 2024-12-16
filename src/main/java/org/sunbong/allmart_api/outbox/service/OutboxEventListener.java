@@ -7,64 +7,74 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.sunbong.allmart_api.delivery.domain.DeliveryStatus;
 import org.sunbong.allmart_api.delivery.service.DeliveryService;
-import org.sunbong.allmart_api.outbox.domain.OutboxEntity;
-import org.sunbong.allmart_api.outbox.repository.OutboxRepository;
 
 @Service
 @RequiredArgsConstructor
 @Log4j2
+@Transactional
 public class OutboxEventListener {
 
-    private final ObjectMapper objectMapper; // DI로 ObjectMapper 주입
-    private final OutboxRepository outboxRepository;
+    private final ObjectMapper objectMapper; // JSON 처리용 ObjectMapper
     private final DeliveryService deliveryService;
 
+    /**
+     * Debezium Kafka 메시지 처리
+     */
     @KafkaListener(topics = "jindb.jindb.tbl_outbox", groupId = "delivery-service", concurrency = "1")
     public void handleOutboxEvent(String message) {
         try {
-            // Kafka 메시지 JSON 파싱
             JsonNode root = objectMapper.readTree(message);
 
-            Long outboxId = root.get("id").asLong();
-
             String eventType = root.get("event_type").asText();
-
             String payload = root.get("payload").asText();
 
-            // Outbox 상태 확인
-            OutboxEntity outboxEntity = outboxRepository.findById(outboxId)
-                    .orElseThrow(() -> new IllegalArgumentException("Outbox entry not found for ID: " + outboxId));
+            log.info("Received Outbox Event: eventType={}, payload={}", eventType, payload);
 
-            if (outboxEntity.isProcessed()) {
-                log.warn("Outbox event already processed: Outbox ID: {}", outboxId);
-                return; // 이미 처리된 이벤트는 무시
+            switch (eventType) {
+                case "ORDER_COMPLETED" -> processOrderCompleted(payload);
+                case "DELIVERY_CREATED" -> processDeliveryCreated(payload);
+                case "DELIVERY_STATUS_UPDATED" -> processDeliveryStatusUpdated(payload);
+                default -> log.warn("Unknown event type: {}", eventType);
             }
+        } catch (Exception e) {
+            log.error("Error processing Outbox event. Message: {}", message, e);
+        }
+    }
 
-            // Payload 내부 JSON 파싱
+    private void processOrderCompleted(String payload) {
+        try {
             JsonNode payloadNode = objectMapper.readTree(payload);
             Long orderId = payloadNode.get("orderId").asLong();
             String customerId = payloadNode.get("customerId").asText();
-            String paymentType = payloadNode.has("paymentType") ? payloadNode.get("paymentType").asText() : "UNKNOWN";
 
-            // 이벤트 타입이 ORDER_COMPLETED인 경우 처리
-            if ("ORDER_COMPLETED".equals(eventType)) {
-                log.info("Processing Outbox event: ID: {}, Type: {}, Order ID: {}", outboxId, eventType, orderId);
+            log.info("Processing ORDER_COMPLETED event for Order ID: {}, Customer ID: {}", orderId, customerId);
 
-                // Outbox 상태를 처리 완료로 업데이트
-                outboxEntity.markAsProcessed();
-                outboxRepository.save(outboxEntity);
-
-                log.info("Outbox event marked as processed: Outbox ID: {}", outboxId);
-
-                // 배달 생성 호출
-                deliveryService.createDelivery(orderId, customerId, paymentType);
-            }
+            deliveryService.createDelivery(orderId, customerId, "ONLINE");
         } catch (Exception e) {
-            log.error("Error processing Outbox event: {}", message, e);
+            log.error("Error processing ORDER_COMPLETED event. Payload: {}", payload, e);
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void processDeliveryCreated(String payload) {
+        log.info("Handling DELIVERY_CREATED event: Payload={}", payload);
+        // 배달 생성 이벤트 처리
+    }
+
+    private void processDeliveryStatusUpdated(String payload) {
+        try {
+            JsonNode payloadNode = objectMapper.readTree(payload);
+            Long deliveryId = payloadNode.get("deliveryId").asLong();
+            String status = payloadNode.get("status").asText();
+
+            log.info("Processing DELIVERY_STATUS_UPDATED event for Delivery ID: {}, Status: {}", deliveryId, status);
+
+            deliveryService.updateDeliveryStatus(deliveryId, DeliveryStatus.valueOf(status));
+        } catch (Exception e) {
+            log.error("Error processing DELIVERY_STATUS_UPDATED event. Payload: {}", payload, e);
+            throw new RuntimeException(e);
         }
     }
 }
-
-
-

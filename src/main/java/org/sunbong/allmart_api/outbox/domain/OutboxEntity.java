@@ -36,6 +36,11 @@ public class OutboxEntity extends BaseEntity {
         this.eventType = newEventType;
     }
 
+
+    public void updatePayload(String newPayload) {
+        this.payload = newPayload;
+    }
+
     // 처리 완료 상태로 변경하는 메서드
     public void markAsProcessed() {
         this.processed = true;

@@ -10,6 +10,10 @@ spring:
       minimum-idle: 2
       maximum-pool-size: 10
       connection-timeout: 10000
+  data:
+    redis:
+      host: 127.0.0.1 # Redis 컨테이너가 실행 중인 호스트
+      port: 6379      # Redis 기본 포트
 
   jpa:
     hibernate:
@@ -50,7 +54,15 @@ spring:
       max.poll.records: 500
     topics:
       dlq: jindb.jindb.tbl_outbox.dlq
-
+    streams:
+      application-id: delivery-stream-app
+      state-dir: /data/kafka-streams
+      properties:
+        commit.interval.ms: 100
+        statestore.cache.max.bytes: 10485760
+        replication.factor: 1
+        default.key.serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+        default.value.serde: org.apache.kafka.common.serialization.Serdes$StringSerde
 org:
   allmart_api:
     accessTime: 60
@@ -73,3 +85,4 @@ kakao:
   KAKAO_GEO_API_KEY: ${KAKAO_GEO_API_KEY}
 toss:
   SECRET_KEY: ${TOSS_SECRET_KEY}
+
