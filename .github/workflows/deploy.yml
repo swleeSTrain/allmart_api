@@ -48,7 +48,6 @@ jobs:
         with:
           name: spring-boot-app
           path: build/libs/*.jar
-
   deploy:
     name: Deploy to EC2
     needs: build # 빌드 작업이 성공적으로 완료된 후 실행됨
@@ -60,6 +59,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: spring-boot-app
+          path: . # 다운로드 경로 설정
 
       # 2. EC2에 파일 전송 및 배포 실행
       - name: Deploy to EC2 instance
@@ -71,10 +71,12 @@ jobs:
         run: |
           echo "$PRIVATE_KEY" > private_key && chmod 600 private_key
 
+          # 다운로드한 JAR 파일 확인
+          ls -al
+          
           # JAR 파일 전송
           scp -o StrictHostKeyChecking=no -i private_key *.jar ${USERNAME}@${HOST}:~/app/app.jar
-          
-          
+
           # EC2에서 배포 스크립트 실행
           ssh -o StrictHostKeyChecking=no -i private_key ${USERNAME}@${HOST} << EOF
             sudo yum update -y
