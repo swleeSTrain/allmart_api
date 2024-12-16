@@ -31,8 +31,6 @@ jobs:
       - name: Create .env file
         run: |
           echo "${{ secrets.ENV_CONTENT }}" > .env
-      - name: Check .env file exists
-        run: ls -al .env
 
       - name: gradlew 실행 권한 부여
         run: chmod +x gradlew
