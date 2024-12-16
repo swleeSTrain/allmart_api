@@ -34,8 +34,10 @@ jobs:
       # 4. .env 파일 생성
       - name: Create .env file
         run: |
+          touch .env
           echo "${{ secrets.ENV_CONTENT }}" >> .env
-
+        env:
+          ${{ secrets.ENV_CONTENT }}
       # 5. gradlew에 실행 권한 부여
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
