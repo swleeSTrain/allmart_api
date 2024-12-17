@@ -31,7 +31,7 @@ public class ProductSearchImpl extends QuerydslRepositorySupport implements Prod
     }
 
     @Override
-    public PageResponseDTO<ProductListDTO> searchBySKU(List<String> skuList, PageRequestDTO pageRequestDTO) {
+    public PageResponseDTO<ProductListDTO> searchBySKU(Long martID, List<String> skuList, PageRequestDTO pageRequestDTO) {
         log.info("-------------------searchBySKU----------");
 
         QProduct product = QProduct.product;
@@ -67,6 +67,7 @@ public class ProductSearchImpl extends QuerydslRepositorySupport implements Prod
         JPQLQuery<MartProduct> query = from(martProduct)
                 .join(martProduct.product, product).fetchJoin()
                 .join(product.attachImages, attachFile)
+                .where(martProduct.mart.martID.eq(martID))
                 .where(martProduct.delFlag.eq(false)) // 삭제되지 않은 MartProduct
                 .where(attachFile.ord.eq(0)) // 첫 번째 이미지
                 .where(builder);
