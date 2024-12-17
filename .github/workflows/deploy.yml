@@ -26,7 +26,13 @@ jobs:
           chmod +x ./gradlew
           ./gradlew clean build
 
-      # 4. EC2 서버에 배포 (SSH)
+      # 4. 빌드된 JAR 파일 이름 추출
+      - name: Get JAR file name
+        run: |
+          JAR_FILE=$(ls ./build/libs/*.jar)
+          echo "JAR_FILE=$JAR_FILE" >> $GITHUB_ENV
+
+      # 5. EC2 서버에 배포 (SSH)
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v0.1.8
         with:
@@ -35,16 +41,19 @@ jobs:
           key: ${{ secrets.EC2_PRIVATE_KEY }}     # SSH 개인 키 (GitHub Secrets에 저장)
           port: 22                            # 기본 SSH 포트
           script: |
+            APP_DIR=~/app
+            JAR_FILE_NAME=$(basename ${{ env.JAR_FILE }})
+            
             # 애플리케이션 디렉토리로 이동 또는 생성
-            mkdir -p ~/app
-            cd ~/app
+            mkdir -p $APP_DIR
+            cd $APP_DIR
 
             # 기존 애플리케이션 종료
             pkill -f 'java -jar' || true
 
-            # 기존 파일 제거 및 새 파일 복사
+            # 기존 파일 제거
             rm -rf *
-            
+
             # .env 파일 생성 (GitHub Secrets에서 값 가져오기)
             echo "AWS_ACCESS_KEY=${{ secrets.AWS_ACCESS_KEY }}" >> .env
             echo "AWS_REGION=${{ secrets.AWS_REGION }}" >> .env
@@ -58,6 +67,7 @@ jobs:
             echo "KAKAO_MAP_API_KEY=${{ secrets.KAKAO_MAP_API_KEY}}" >> .env
             echo "TOSS_SECRET_KEY=${{ secrets.TOSS_SECRET_KEY}}" >> .env
 
+
             # GitHub Actions에서 빌드된 JAR 파일 업로드 및 실행
-            scp -i ~/.ssh/id_rsa ../build/libs/*.jar ~/app/
-            nohup java -jar *.jar > app.log 2>&1 &
+            scp -i ~/.ssh/id_rsa ${{ env.JAR_FILE }} $APP_DIR/
+            nohup java -jar $JAR_FILE_NAME > app.log 2>&1 &
