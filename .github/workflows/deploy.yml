@@ -25,15 +25,15 @@ jobs:
       - name: Build with Gradle
         run: |
           chmod +x ./gradlew
-          ./gradlew clean build -x test  
+          ./gradlew clean build -x test
 
       # 4. 빌드된 JAR 파일 이름 추출
       - name: Get JAR file name
+        id: get_jar_file
         run: |
           JAR_FILE=$(find ./build/libs -maxdepth 1 -name "*.jar" -print -quit)
           echo "JAR_FILE=$JAR_FILE"
-          
-          echo "::set-env name=JAR_FILE::$JAR_FILE"
+          echo "JAR_FILE=$JAR_FILE" >> $GITHUB_ENV # 변경된 부분
 
       # 5. EC2 서버에 배포 (SSH)
       - name: Deploy to EC2
@@ -57,8 +57,8 @@ jobs:
             # 기존 파일 제거
             rm -rf *
 
-            # .env 파일 생성 (GitHub Secrets에서 값 가져오기)
-            echo "AWS_ACCESS_KEY=${{ secrets.AWS_ACCESS_KEY }}" >> .env
+             # .env 파일 생성 (GitHub Secrets에서 값 가져오기)
+            echo "AWS_ACCESS_KEY=${{ secrets.AWS_ACCESS_KEY }}" > .env
             echo "AWS_REGION=${{ secrets.AWS_REGION }}" >> .env
             echo "AWS_S3_BUCKET=${{ secrets.AWS_S3_BUCKET }}" >> .env
             echo "AWS_SECRET_KEY=${{ secrets.AWS_SECRET_KEY }}" >> .env
