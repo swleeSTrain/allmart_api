@@ -3,6 +3,7 @@ package org.sunbong.allmart_api.board.domain;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
+import org.sunbong.allmart_api.common.domain.BaseEntity;
 
 @Entity
 @Builder(toBuilder = true)
