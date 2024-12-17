@@ -21,17 +21,19 @@ jobs:
           java-version: '17'
           distribution: 'corretto'
 
-      # 3. Gradle 빌드
+      # 3. Gradle 빌드 (테스트 건너뛰기)
       - name: Build with Gradle
         run: |
           chmod +x ./gradlew
-          ./gradlew clean build -x test
+          ./gradlew clean build -x test  
 
       # 4. 빌드된 JAR 파일 이름 추출
       - name: Get JAR file name
         run: |
-          JAR_FILE=$(ls ./build/libs/*.jar)
-          echo "JAR_FILE=$JAR_FILE" >> $GITHUB_ENV
+          JAR_FILE=$(find ./build/libs -maxdepth 1 -name "*.jar" -print -quit)
+          echo "JAR_FILE=$JAR_FILE"
+          
+          echo "::set-env name=JAR_FILE::$JAR_FILE"
 
       # 5. EC2 서버에 배포 (SSH)
       - name: Deploy to EC2
@@ -67,7 +69,6 @@ jobs:
             echo "KAKAO_GEO_API_KEY=${{ secrets.KAKAO_GEO_API_KEY}}" >> .env
             echo "KAKAO_MAP_API_KEY=${{ secrets.KAKAO_MAP_API_KEY}}" >> .env
             echo "TOSS_SECRET_KEY=${{ secrets.TOSS_SECRET_KEY}}" >> .env
-
 
             # GitHub Actions에서 빌드된 JAR 파일 업로드 및 실행
             scp -i ~/.ssh/id_rsa ${{ env.JAR_FILE }} $APP_DIR/
