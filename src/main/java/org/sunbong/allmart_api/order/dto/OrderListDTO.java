@@ -5,7 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.sunbong.allmart_api.order.domain.OrderStatus;
-import org.sunbong.allmart_api.payment.dto.OrderPaymentDTO;
+import org.sunbong.allmart_api.order.domain.PaymentType;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -23,5 +23,5 @@ public class OrderListDTO {
     private BigDecimal totalAmount;      // 주문 총액
     private LocalDateTime orderTime;     // 주문 시간
     private List<OrderItemDTO> orderItems; // 주문 항목 리스트
-    private OrderPaymentDTO payment;       // 결제 정보
+    private PaymentType payment;       // 결제 정보
 }
