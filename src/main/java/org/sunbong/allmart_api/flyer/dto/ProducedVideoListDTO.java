@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.sunbong.allmart_api.flyer.domain.Flyer;
 
 import java.time.LocalDate;
 
@@ -20,4 +21,5 @@ public class ProducedVideoListDTO {
     private String link;
     private String originalFile;
     private String memo;
+    private Long flyerId;
 }

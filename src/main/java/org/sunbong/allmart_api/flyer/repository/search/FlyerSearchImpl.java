@@ -10,14 +10,18 @@ import org.springframework.data.jpa.repository.support.QuerydslRepositorySupport
 import org.sunbong.allmart_api.common.dto.PageRequestDTO;
 import org.sunbong.allmart_api.common.dto.PageResponseDTO;
 import org.sunbong.allmart_api.flyer.domain.Flyer;
+import org.sunbong.allmart_api.flyer.domain.FlyerImage;
 import org.sunbong.allmart_api.flyer.domain.QFlyer;
 import org.sunbong.allmart_api.flyer.domain.QFlyerImage;
 import org.sunbong.allmart_api.flyer.dto.FlyerListDTO;
 import org.sunbong.allmart_api.flyer.dto.FlyerReadDTO;
+import org.sunbong.allmart_api.flyer.dto.FlyerSystemManagerListDTO;
+import org.sunbong.allmart_api.flyer.dto.ProducedVideoDTO;
 
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+
 
 @Log4j2
 public class FlyerSearchImpl extends QuerydslRepositorySupport implements FlyerSearch {
@@ -116,6 +120,74 @@ public class FlyerSearchImpl extends QuerydslRepositorySupport implements FlyerS
                 .audioURL(audioURLs) // audioURL 추가
                 .createdDate(result.getCreatedDate())
                 .modifiedDate(result.getModifiedDate())
+                .build();
+    }
+
+
+
+
+    public PageResponseDTO<FlyerSystemManagerListDTO> listSystem(PageRequestDTO pageRequestDTO) {
+
+        log.info("-------------------list----------");
+
+        Pageable pageable = PageRequest.of(
+                pageRequestDTO.getPage() - 1,
+                pageRequestDTO.getSize(),
+                Sort.by("flyerID").descending()
+        );
+
+        QFlyer flyer = QFlyer.flyer;
+        QFlyerImage attachImage = QFlyerImage.flyerImage;
+
+        BooleanBuilder builder = new BooleanBuilder();
+        String keyword = pageRequestDTO.getKeyword();
+        String type = pageRequestDTO.getType();
+
+        if (keyword != null && type != null) {
+            if (type.contains("title")) {
+                builder.or(flyer.title.containsIgnoreCase(keyword));
+            }
+            if (type.contains("content")) {
+                builder.or(flyer.content.containsIgnoreCase(keyword));
+            }
+        }
+
+        JPQLQuery<Flyer> query = from(flyer)
+                .join(flyer.attachImages, attachImage)
+                .leftJoin(flyer.audioURL)
+                .where(builder)
+                .where(attachImage.ord.eq(0))
+                .groupBy(flyer);
+
+        // 페이징 적용
+        getQuerydsl().applyPagination(pageable, query);
+
+        List<Flyer> flyerList = query.fetch();
+        long total = query.fetchCount();
+
+        List<FlyerSystemManagerListDTO> dtoList = flyerList.stream()
+                .map(fly -> FlyerSystemManagerListDTO.builder()
+                        .flyerID(fly.getFlyerID())
+                        .title(fly.getTitle())
+                        .content(fly.getContent())
+                        .martName(fly.getMart().getMartName())
+                        .attachImages(fly.getAttachImages())
+                        .audioURL(fly.getAudioURL())
+                        .createdDate(fly.getCreatedDate())
+                        .thumbnailImage(fly.getAttachImages().isEmpty() ? null : fly.getAttachImages().get(0).getImageURL())
+                        .producedVideo(fly.getProducedVideo() != null
+                                        ? new ProducedVideoDTO(
+                                                fly.getProducedVideo().getFileName(),
+                                                fly.getProducedVideo().getLink(),
+                                                fly.getProducedVideo().getOriginalFile()
+                                ):null)
+                        .build())
+                .collect(Collectors.toList());
+
+        return PageResponseDTO.<FlyerSystemManagerListDTO>withAll()
+                .dtoList(dtoList)
+                .totalCount(total)
+                .pageRequestDTO(pageRequestDTO)
                 .build();
     }
 

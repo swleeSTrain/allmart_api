@@ -6,7 +6,6 @@ import com.querydsl.jpa.JPQLQuery;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.support.QuerydslRepositorySupport;
 import org.sunbong.allmart_api.board.domain.BoardAttachFile;
 import org.sunbong.allmart_api.board.domain.BoardPost;
@@ -102,12 +101,12 @@ public class BoardPostSearchImpl extends QuerydslRepositorySupport implements Bo
                 .fileName(post.getBoardAttachFiles()
                         .stream()
                         .map(BoardAttachFile::getFileName)
-                        .filter(fileName -> fileName.startsWith("s_"))
+                        .filter(fileName -> fileName.contains("/s_"))
                         .findFirst()
                         .map(Collections::singletonList)
                         .orElse(Collections.emptyList()))
-                .createTime(post.getCreateTime())
-                .updateTime(post.getUpdateTime())
+                .createDate(post.getCreatedDate())
+                .modifyDate(post.getModifiedDate())
                 .isPinned(post.isPinned())
                 .build();
     }
@@ -125,7 +124,7 @@ public class BoardPostSearchImpl extends QuerydslRepositorySupport implements Bo
                 .where(qBoardPost.bno.eq(bno)
                         .and(qBoardPost.delflag.eq(false)))
                 .select(qBoardPost.bno, qBoardPost.title, qBoardPost.writer, qBoardPost.content,
-                        qBoardPost.createTime, qBoardPost.updateTime, qBoardAttachFile.fileName,
+                        qBoardPost.createdDate, qBoardPost.modifiedDate, qBoardAttachFile.fileName,
                         qBoardPost.isPinned);
 
         List<Tuple> resultList = query.fetch();
@@ -140,8 +139,8 @@ public class BoardPostSearchImpl extends QuerydslRepositorySupport implements Bo
                                     .title(tuples.get(0).get(qBoardPost.title))
                                     .writer(tuples.get(0).get(qBoardPost.writer))
                                     .content(tuples.get(0).get(qBoardPost.content))
-                                    .createTime(tuples.get(0).get(qBoardPost.createTime))
-                                    .updateTime(tuples.get(0).get(qBoardPost.updateTime))
+                                    .createDate(tuples.get(0).get(qBoardPost.createdDate))
+                                    .modifyDate(tuples.get(0).get(qBoardPost.modifiedDate))
                                     .isPinned(tuples.get(0).get(qBoardPost.isPinned));
 
                             List<String> filenames = tuples.stream()
@@ -149,11 +148,7 @@ public class BoardPostSearchImpl extends QuerydslRepositorySupport implements Bo
                                     .filter(Objects::nonNull)
                                     .collect(Collectors.toList());
 
-                            List<String> fileUrls = filenames.stream()
-                                    .map(filename -> "/api/v1/files/" + filename)
-                                    .collect(Collectors.toList());
-
-                            return builder.filename(filenames).fileUrls(fileUrls).build();
+                            return builder.filename(filenames).build();
                         })
                 ))
                 .values().stream().collect(Collectors.toList());

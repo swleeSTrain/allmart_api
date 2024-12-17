@@ -16,8 +16,8 @@ public class BoardPostListDTO {
     private Long bno;
     private String title;
     private String writer;
-    private LocalDateTime createTime;  // 생성날짜
-    private LocalDateTime updateTime;  // 수정날짜
+    private LocalDateTime createDate;  // 생성날짜
+    private LocalDateTime modifyDate;  // 수정날짜
     private List<String> fileName;
 
     private boolean isPinned;
