@@ -2,6 +2,7 @@ package org.sunbong.allmart_api.customer.repository.search;
 
 
 import com.querydsl.core.Tuple;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.JPQLQuery;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.data.domain.*;
@@ -35,7 +36,7 @@ public class CustomerSearchImpl extends QuerydslRepositorySupport  implements Cu
     }
 
     @Override
-    public Optional<CustomerMartDTO> findMartInfo(String userData, CustomerLoginType loginType) {
+    public Optional<CustomerMartDTO> findMartInfo(String userData) {
 
         QMartCustomer martCustomer = QMartCustomer.martCustomer;
         QCustomer customer = QCustomer.customer;
@@ -43,19 +44,20 @@ public class CustomerSearchImpl extends QuerydslRepositorySupport  implements Cu
         QMartLogo martLogo = QMartLogo.martLogo;
 
         log.info("===================");
+
+        // 이메일과 휴대폰 번호 구분
+        BooleanExpression condition = userData.contains("@")
+                ? customer.email.eq(userData)
+                : customer.phoneNumber.eq(userData);
+
         // Query 작성
         JPQLQuery<Tuple> query = from(martCustomer)
                 .join(martCustomer.mart, mart)
                 .join(martCustomer.customer, customer)
                 .leftJoin(mart.attachLogo, martLogo)
-                .where(
-                        loginType == CustomerLoginType.PHONE
-                                ? customer.phoneNumber.eq(userData)
-                                : customer.email.eq(userData)
-                )
+                .where(condition)
                 .groupBy(mart.martID, mart.martName, martLogo.logoURL) // 중복 제거
                 .select(mart.martID, mart.martName, martLogo.logoURL);
-
 
         // 결과 조회
         Tuple result = query.fetchFirst();

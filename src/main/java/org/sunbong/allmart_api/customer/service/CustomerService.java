@@ -51,9 +51,9 @@ public class CustomerService {
 
     private final JWTUtil jwtUtil;
 
-    public Optional<CustomerMartDTO> getMartInfo(String userData, CustomerLoginType loginType) {
+    public Optional<CustomerMartDTO> getMartInfo(String userData) {
 
-        return customerRepository.findMartInfo(userData, loginType);
+        return customerRepository.findMartInfo(userData);
     }
 
     public Customer socialRegisterCustomer(CustomerSocialRegisterDTO customerRegisterDTO) {

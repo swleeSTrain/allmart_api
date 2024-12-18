@@ -47,18 +47,29 @@ public class CustomerController {
     @Value("${org.allmart_api.alwaysNew}")
     private boolean alwaysNew;
 
-    @GetMapping("/{emailOrPhone}")
-    public ResponseEntity<CustomerMartDTO> getMartInfo(
-            @PathVariable String emailOrPhone,
-            @RequestParam("loginType") CustomerLoginType loginType
-    ) {
-        log.info("Fetching Mart Info for: {}, LoginType: {}", emailOrPhone, loginType);
+    @PostMapping("/martinfo")
+    public ResponseEntity<CustomerMartDTO> getMartInfo(@RequestBody CustomerRequestDTO requestDTO) {
+        String userData;
 
-        Optional<CustomerMartDTO> martInfo = customerService.getMartInfo(emailOrPhone, loginType);
+        // 휴대폰번호인지, 이메일인지
+        if (requestDTO.getEmail() != null && !requestDTO.getEmail().isBlank()) {
+            userData = requestDTO.getEmail();
+        } else if (requestDTO.getPhoneNumber() != null && !requestDTO.getPhoneNumber().isBlank()) {
+            userData = requestDTO.getPhoneNumber();
+        } else {
+            log.error("No valid email or phone number provided");
+            return ResponseEntity.badRequest().build();
+        }
+
+        log.info("Fetching Mart Info for: {}", userData);
+
+        Optional<CustomerMartDTO> martInfo = customerService.getMartInfo(userData);
 
         return martInfo.map(ResponseEntity::ok)
                 .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
     }
+
+
 
 
     // 새로운 고객 및 주소 등록 로직

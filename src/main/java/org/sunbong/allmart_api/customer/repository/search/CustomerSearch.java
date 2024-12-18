@@ -22,5 +22,5 @@ public interface CustomerSearch {
 
     Optional<CustomerResponseDTO> findCustomerWithMart(String userData, CustomerLoginType loginType);
 
-    Optional<CustomerMartDTO> findMartInfo(String userData, CustomerLoginType loginType);
+    Optional<CustomerMartDTO> findMartInfo(String userData);
 }
