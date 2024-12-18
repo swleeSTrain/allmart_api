@@ -87,7 +87,6 @@ public class MartService {
         List<String> retainedFiles = dto.getExistingFileNames();
 
         if (retainedFiles != null) {
-            // 기존 파일 중 삭제된 파일 처리 (retainedFiles에 포함되지 않은 파일 삭제)
             existingMart.getAttachLogo()
                     .removeIf(file -> !retainedFiles.contains(file.getLogoURL()));
         } else {
