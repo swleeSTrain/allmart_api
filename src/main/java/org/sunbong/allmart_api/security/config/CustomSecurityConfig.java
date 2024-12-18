@@ -69,12 +69,9 @@ public class CustomSecurityConfig implements WebMvcConfigurer {
         corsConfiguration.setExposedHeaders(List.of("*"));
         corsConfiguration.setAllowCredentials(true);
         corsConfiguration.setMaxAge(3600L);
-        // CORS를 비활성화할 특정 페이지의 구성
-        CorsConfiguration disabledConfig = new CorsConfiguration();
-        disabledConfig.setAllowedOrigins(List.of());
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", corsConfiguration);
-        source.registerCorsConfiguration("/api/v1/kakao/*", disabledConfig);
+
         return source;
 
     }
