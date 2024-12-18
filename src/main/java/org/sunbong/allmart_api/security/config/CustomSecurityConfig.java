@@ -66,6 +66,7 @@ public class CustomSecurityConfig implements WebMvcConfigurer {
         corsConfiguration.setAllowedOriginPatterns(List.of("https://allmartsystem.shop")); // 어디서든 허락
         corsConfiguration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "HEAD","PATCH", "OPTIONS"));
         corsConfiguration.setAllowedHeaders(List.of("Authorization", "Cache-Control", "Content-Type","Origin"));
+        corsConfiguration.setExposedHeaders(List.of("*"));
         corsConfiguration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
