@@ -87,7 +87,6 @@ public class OrderServiceImpl implements OrderService {
             throw new IllegalStateException("Order createdDate is null");
         }
 
-
         OrderEntity updatedOrder = order.changeStatus(newStatus);
         orderRepository.save(updatedOrder);
 

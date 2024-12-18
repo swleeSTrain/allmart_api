@@ -9,7 +9,6 @@ import org.sunbong.allmart_api.order.exception.OrderStatusChangeException;
 
 import java.math.BigDecimal;
 
-
 @Entity
 @AllArgsConstructor
 @NoArgsConstructor

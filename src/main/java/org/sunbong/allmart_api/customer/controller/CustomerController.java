@@ -47,12 +47,43 @@ public class CustomerController {
     @Value("${org.allmart_api.alwaysNew}")
     private boolean alwaysNew;
 
+    // 새로운 고객 및 주소 등록 로직
+    @PostMapping("/signup")
+    public ResponseEntity<String> socialRegisterCustomer(@RequestBody CustomerSocialRegisterDTO customerSocialRegisterDTO) {
+        Customer registeredCustomer = customerService.socialRegisterCustomer(customerSocialRegisterDTO);
+
+        log.info("Customer and Address registered successfully: {}", registeredCustomer);
+
+        return ResponseEntity.ok("Customer and Address registered successfully!");
+    }
+
+    // 새로운 고객 및 주소 등록 로직
+    @PostMapping("/register")
+    public ResponseEntity<String> registerCustomer(@RequestBody CustomerRegisterDTO customerRegisterDTO) {
+        Customer registeredCustomer = customerService.registerCustomer(customerRegisterDTO);
+
+        log.info("Customer and Address registered successfully: {}", registeredCustomer);
+
+        return ResponseEntity.ok("Customer and Address registered successfully!");
+    }
+
     @PostMapping("/signIn/phoneNumber")
     public ResponseEntity<CustomerTokenResponseDTO> phoneNumberSignIn(
             @RequestBody CustomerSignInRequestDTO signInRequest) {
 
         // 로그인 타입 설정
         CustomerTokenResponseDTO tokenResponseDTO = customerService.signIn(signInRequest, CustomerLoginType.PHONE);
+
+        // 토큰 반환
+        return ResponseEntity.ok(tokenResponseDTO);
+    }
+
+    @PostMapping("/signIn/social")
+    public ResponseEntity<CustomerTokenResponseDTO> socialSignIn(
+            @RequestBody CustomerSignInRequestDTO signInRequest) {
+
+        // 로그인 타입 설정
+        CustomerTokenResponseDTO tokenResponseDTO = customerService.signIn(signInRequest, CustomerLoginType.SOCIAL);
 
         // 토큰 반환
         return ResponseEntity.ok(tokenResponseDTO);
@@ -234,15 +265,4 @@ public class CustomerController {
 //    }
 
 
-
-
-
-
-    // 새로운 고객 및 주소 등록 로직
-    @PostMapping("/register")
-    public ResponseEntity<String> registerCustomer(@RequestBody CustomerRegisterDTO customerRegisterDTO) {
-        Customer registeredCustomer = customerService.registerCustomer(customerRegisterDTO);
-        log.info("Customer and Address registered successfully: {}", registeredCustomer);
-        return ResponseEntity.ok("Customer and Address registered successfully!");
-    }
 }
