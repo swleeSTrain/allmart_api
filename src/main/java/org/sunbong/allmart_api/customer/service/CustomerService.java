@@ -51,6 +51,11 @@ public class CustomerService {
 
     private final JWTUtil jwtUtil;
 
+    public Optional<CustomerMartDTO> getMartInfo(String userData, CustomerLoginType loginType) {
+
+        return customerRepository.findMartInfo(userData, loginType);
+    }
+
     public Customer socialRegisterCustomer(CustomerSocialRegisterDTO customerRegisterDTO) {
         // 1. Customer 생성 및 저장
         Customer customer = Customer.builder()

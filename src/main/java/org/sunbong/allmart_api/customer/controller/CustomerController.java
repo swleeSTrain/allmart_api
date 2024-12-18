@@ -47,6 +47,20 @@ public class CustomerController {
     @Value("${org.allmart_api.alwaysNew}")
     private boolean alwaysNew;
 
+    @GetMapping("/{emailOrPhone}")
+    public ResponseEntity<CustomerMartDTO> getMartInfo(
+            @PathVariable String emailOrPhone,
+            @RequestParam("loginType") CustomerLoginType loginType
+    ) {
+        log.info("Fetching Mart Info for: {}, LoginType: {}", emailOrPhone, loginType);
+
+        Optional<CustomerMartDTO> martInfo = customerService.getMartInfo(emailOrPhone, loginType);
+
+        return martInfo.map(ResponseEntity::ok)
+                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+    }
+
+
     // 새로운 고객 및 주소 등록 로직
     @PostMapping("/signup")
     public ResponseEntity<String> socialRegisterCustomer(@RequestBody CustomerSocialRegisterDTO customerSocialRegisterDTO) {

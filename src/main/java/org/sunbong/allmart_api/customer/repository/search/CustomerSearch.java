@@ -7,6 +7,7 @@ import org.sunbong.allmart_api.common.dto.PageResponseDTO;
 import org.sunbong.allmart_api.customer.domain.Customer;
 import org.sunbong.allmart_api.customer.domain.CustomerLoginType;
 import org.sunbong.allmart_api.customer.dto.CustomerListDTO;
+import org.sunbong.allmart_api.customer.dto.CustomerMartDTO;
 import org.sunbong.allmart_api.customer.dto.CustomerResponseDTO;
 
 import java.util.Optional;
@@ -20,4 +21,6 @@ public interface CustomerSearch {
     CustomerResponseDTO findByPhoneNumberOrEmail(String customerData, CustomerLoginType loginType);
 
     Optional<CustomerResponseDTO> findCustomerWithMart(String userData, CustomerLoginType loginType);
+
+    Optional<CustomerMartDTO> findMartInfo(String userData, CustomerLoginType loginType);
 }

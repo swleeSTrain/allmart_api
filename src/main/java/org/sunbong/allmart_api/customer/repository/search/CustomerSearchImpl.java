@@ -10,9 +10,12 @@ import org.sunbong.allmart_api.common.dto.PageRequestDTO;
 import org.sunbong.allmart_api.common.dto.PageResponseDTO;
 import org.sunbong.allmart_api.customer.domain.*;
 import org.sunbong.allmart_api.customer.dto.CustomerListDTO;
+import org.sunbong.allmart_api.customer.dto.CustomerMartDTO;
 import org.sunbong.allmart_api.customer.dto.CustomerResponseDTO;
 import org.sunbong.allmart_api.mart.domain.MartCustomer;
+import org.sunbong.allmart_api.mart.domain.QMart;
 import org.sunbong.allmart_api.mart.domain.QMartCustomer;
+import org.sunbong.allmart_api.mart.domain.QMartLogo;
 import org.sunbong.allmart_api.qrcode.domain.QQrCode;
 import org.sunbong.allmart_api.qrcode.domain.QrCode;
 
@@ -29,6 +32,48 @@ public class CustomerSearchImpl extends QuerydslRepositorySupport  implements Cu
     public CustomerSearchImpl() {
         super(Customer.class);
 
+    }
+
+    @Override
+    public Optional<CustomerMartDTO> findMartInfo(String userData, CustomerLoginType loginType) {
+
+        QMartCustomer martCustomer = QMartCustomer.martCustomer;
+        QCustomer customer = QCustomer.customer;
+        QMart mart = QMart.mart;
+        QMartLogo martLogo = QMartLogo.martLogo;
+
+        log.info("===================");
+        // Query 작성
+        JPQLQuery<Tuple> query = from(martCustomer)
+                .join(martCustomer.mart, mart)
+                .join(martCustomer.customer, customer)
+                .leftJoin(mart.attachLogo, martLogo)
+                .where(
+                        loginType == CustomerLoginType.PHONE
+                                ? customer.phoneNumber.eq(userData)
+                                : customer.email.eq(userData)
+                )
+                .groupBy(mart.martID, mart.martName, martLogo.logoURL) // 중복 제거
+                .select(mart.martID, mart.martName, martLogo.logoURL);
+
+
+        // 결과 조회
+        Tuple result = query.fetchFirst();
+
+        log.info(result);
+
+        if (result == null) {
+            return Optional.empty();
+        }
+
+        // DTO 생성 및 반환
+        return Optional.of(
+                CustomerMartDTO.builder()
+                        .martID(result.get(mart.martID))
+                        .martName(result.get(mart.martName))
+                        .logoURL(result.get(martLogo.logoURL))
+                        .build()
+        );
     }
 
     @Override
