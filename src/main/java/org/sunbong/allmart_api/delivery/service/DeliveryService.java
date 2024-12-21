@@ -1,186 +1,172 @@
+
+
 package org.sunbong.allmart_api.delivery.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.sunbong.allmart_api.delivery.domain.DeliveryEntity;
 import org.sunbong.allmart_api.delivery.domain.DeliveryStatus;
-import org.sunbong.allmart_api.delivery.dto.DeliveryDTO;
+import org.sunbong.allmart_api.delivery.domain.DriverEntity;
 import org.sunbong.allmart_api.delivery.repository.DeliveryRepository;
-import org.sunbong.allmart_api.order.domain.OrderEntity;
-import org.sunbong.allmart_api.order.domain.OrderStatus;
-import org.sunbong.allmart_api.order.dto.OrderDTO;
-import org.sunbong.allmart_api.order.repository.OrderJpaRepository;
+import org.sunbong.allmart_api.delivery.repository.DriverRepository;
+import org.sunbong.allmart_api.outbox.domain.OutboxEntity;
+import org.sunbong.allmart_api.outbox.repository.OutboxRepository;
 
-import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Log4j2
 @Transactional
 public class DeliveryService {
 
-    private final OrderJpaRepository orderRepository;
     private final DeliveryRepository deliveryRepository;
+    private final DriverRepository driverRepository;
+    private final RedisTemplate<String, String> redisTemplate;
+    private final KafkaTemplate<String, String> kafkaTemplate;
+    private final ObjectMapper objectMapper;
+    private final OutboxRepository outboxRepository;
 
-    /**
-     * 2시간 동안 COMPLETED 상태의 주문을 고객 ID별로 묶어 배달 생성
-     */
-    public List<DeliveryDTO> processOrdersForDelivery(LocalDateTime startTime, LocalDateTime endTime) {
-        // COMPLETED 상태의 주문 조회
-        List<OrderEntity> completedOrders = orderRepository.findByStatusAndCreatedDateBetween(OrderStatus.COMPLETED, startTime, endTime);
+    public void createDelivery(Long orderId, String customerId, String paymentType) {
+        log.info("Creating delivery for Order ID: {}, Customer ID: {}, Payment Type: {}", orderId, customerId, paymentType);
 
-        // 고객 ID별로 주문 그룹화
-        Map<String, List<OrderEntity>> ordersGroupedByCustomer = completedOrders.stream()
-                .collect(Collectors.groupingBy(OrderEntity::getCustomerId));
+        DriverEntity driver = driverRepository.findAvailableDriver()
+                .orElseThrow(() -> new IllegalStateException("No available drivers at the moment"));
 
-        return ordersGroupedByCustomer.entrySet().stream()
-                .map(entry -> {
-                    String customerId = entry.getKey();
-                    List<OrderEntity> orders = entry.getValue();
+        driver.assignDelivery();
 
-                    // 고객 ID로 기존 PENDING 상태 배달 찾기
-                    Optional<OrderEntity> anyOrder = orders.stream().findFirst();
-                    if (anyOrder.isPresent() && anyOrder.get().getDelivery() != null) {
-                        DeliveryEntity existingDelivery = anyOrder.get().getDelivery();
-
-                        // 기존 배달에 주문 연결
-                        orders.forEach(order -> {
-                            order.assignDelivery(existingDelivery);
-                            orderRepository.save(order);
-                        });
-
-                        // 기존 배달 중 사용되지 않는 배달 삭제
-                        deleteUnusedDeliveries(existingDelivery.getDeliveryID());
-
-                        return DeliveryDTO.builder()
-                                .deliveryId(existingDelivery.getDeliveryID())
-                                .deliveryTime(existingDelivery.getDeliveryTime())
-                                .status(existingDelivery.getStatus().name())
-                                .customerId(customerId)
-                                .build();
-                    } else {
-                        // 새로운 배달 생성
-                        DeliveryEntity newDelivery = DeliveryEntity.builder()
-                                .deliveryTime(LocalDateTime.now())
-                                .status(DeliveryStatus.PENDING)
-                                .build();
-                        deliveryRepository.save(newDelivery);
-
-                        // 새로운 배달에 주문 연결
-                        orders.forEach(order -> {
-                            order.assignDelivery(newDelivery);
-                            orderRepository.save(order);
-                        });
-
-                        // 기존 배달 중 사용되지 않는 배달 삭제
-                        deleteUnusedDeliveries(newDelivery.getDeliveryID());
-
-                        return DeliveryDTO.builder()
-                                .deliveryId(newDelivery.getDeliveryID())
-                                .deliveryTime(newDelivery.getDeliveryTime())
-                                .status(newDelivery.getStatus().name())
-                                .customerId(customerId)
-                                .build();
-                    }
-                })
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * 기존 배달 중 사용되지 않는 배달 삭제
-     */
-    private void deleteUnusedDeliveries(Long currentDeliveryId) {
-        List<DeliveryEntity> allDeliveries = deliveryRepository.findByStatus(DeliveryStatus.PENDING);
-
-        for (DeliveryEntity delivery : allDeliveries) {
-            if (!delivery.getDeliveryID().equals(currentDeliveryId)) {
-                // 배달에 연결된 주문 확인
-                List<OrderEntity> linkedOrders = orderRepository.findByDeliveryDeliveryID(delivery.getDeliveryID());
-                if (linkedOrders.isEmpty()) {
-                    // 연결된 주문이 없다면 배달 삭제
-                    deliveryRepository.delete(delivery);
-                }
-            }
-        }
-    }
-
-    /**
-     * 특정 배달 ID에 포함된 주문 조회
-     */
-    public List<OrderDTO> getOrdersByDeliveryId(Long deliveryId) {
-        List<OrderEntity> orders = orderRepository.findByDeliveryDeliveryID(deliveryId);
-
-        return orders.stream()
-                .map(order -> OrderDTO.builder()
-                        .orderId(order.getOrderID())
-                        .customerId(order.getCustomerId())
-                        .totalAmount(order.getTotalAmount())
-                        .status(order.getStatus().name())
-                        .orderTime(order.getCreatedDate())
-                        .build())
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * 배달 상태 변경
-     */
-    public DeliveryDTO changeDeliveryStatus(Long deliveryId, String newStatus) {
-        DeliveryEntity delivery = deliveryRepository.findById(deliveryId)
-                .orElseThrow(() -> new IllegalArgumentException("Delivery not found for ID: " + deliveryId));
-
-        try {
-            DeliveryStatus status = DeliveryStatus.valueOf(newStatus.toUpperCase());
-            delivery = delivery.toBuilder().status(status).build();
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid delivery status: " + newStatus);
-        }
+        DeliveryEntity delivery = DeliveryEntity.builder()
+                .orderId(orderId)
+                .driver(driver)
+                .status(DeliveryStatus.PENDING)
+                .build();
 
         deliveryRepository.save(delivery);
 
-        return DeliveryDTO.builder()
-                .deliveryId(delivery.getDeliveryID())
-                .deliveryTime(delivery.getDeliveryTime())
-                .status(delivery.getStatus().name())
-                .build();
+        // Redis에 저장
+        saveToRedis(delivery);
+
+        // 상태 카운트 업데이트
+        adjustStatusCountInRedis(null, delivery.getStatus());
+
+        log.info("Delivery created successfully for Order ID: {}, Status: {}", orderId, delivery.getStatus());
     }
 
-    @Transactional(readOnly = true)
-    public Map<String, Long> getDeliveryStatusCount() {
-        // 배달 상태별로 개수를 계산
-        Map<DeliveryStatus, Long> statusCounts = deliveryRepository.findAll().stream()
-                .collect(Collectors.groupingBy(DeliveryEntity::getStatus, Collectors.counting()));
+    public void updateDeliveryStatus(Long deliveryId, DeliveryStatus newStatus) {
+        // 기존 배달 정보 조회
+        DeliveryEntity delivery = deliveryRepository.findById(deliveryId)
+                .orElseThrow(() -> new IllegalArgumentException("Delivery not found with id: " + deliveryId));
 
-        // 상태를 문자열로 변환하여 반환
-        return statusCounts.entrySet().stream()
-                .collect(Collectors.toMap(
-                        entry -> entry.getKey().name(), // DeliveryStatus -> String
-                        Map.Entry::getValue // 개수
-                ));
+        DeliveryStatus oldStatus = delivery.getStatus();
+
+        // 상태 전환 검증
+        if (!isValidStatusTransition(oldStatus, newStatus)) {
+            throw new IllegalStateException("Invalid status transition: " + oldStatus + " → " + newStatus);
+        }
+
+        // 상태 업데이트
+        delivery.updateStatus(newStatus);
+        deliveryRepository.save(delivery);
+
+        // Redis 상태 카운트 조정
+        adjustStatusCountInRedis(oldStatus, newStatus);
+
+        // Redis에 개별 배달 정보 저장
+        saveToRedis(delivery);
+
+        log.info("Delivery status updated: Delivery ID={}, Old Status={}, New Status={}", deliveryId, oldStatus, newStatus);
+
+        // "배달 시작" 상태일 경우, 바로 "배달 중" 상태로 전환
+        if (newStatus == DeliveryStatus.START) {
+            log.info("Immediately transitioning Delivery ID={} to IN_PROGRESS", deliveryId);
+
+            // 즉시 "배달 중" 상태로 변경
+            delivery.updateStatus(DeliveryStatus.IN_PROGRESS);
+            deliveryRepository.save(delivery);
+
+            // Redis 상태 카운트 재조정
+            adjustStatusCountInRedis(newStatus, DeliveryStatus.IN_PROGRESS);
+
+            // Redis에 개별 배달 정보 저장
+            saveToRedis(delivery);
+
+            log.info("Delivery ID={} transitioned to IN_PROGRESS", deliveryId);
+        }
     }
 
-    @Transactional(readOnly = true)
-    public List<OrderDTO> getOrdersByStatus(String status) {
+    private void adjustStatusCountInRedis(DeliveryStatus oldStatus, DeliveryStatus newStatus) {
         try {
-            DeliveryStatus deliveryStatus = DeliveryStatus.valueOf(status.toUpperCase());
-            List<OrderEntity> orders = orderRepository.findByDeliveryStatus(deliveryStatus);
+            if (oldStatus != null) {
+                redisTemplate.opsForHash().increment("delivery-status-count", oldStatus.toString(), -1);
+                log.info("Decremented Redis status count: {}", oldStatus);
+            }
 
-            return orders.stream()
-                    .map(order -> OrderDTO.builder()
-                            .orderId(order.getOrderID())
-                            .customerId(order.getCustomerId())
-                            .totalAmount(order.getTotalAmount())
-                            .status(order.getStatus().name())
-                            .orderTime(order.getCreatedDate())
-                            .build())
-                    .collect(Collectors.toList());
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid status: " + status);
+            redisTemplate.opsForHash().increment("delivery-status-count", newStatus.toString(), 1);
+            log.info("Incremented Redis status count: {}", newStatus);
+        } catch (Exception e) {
+            log.error("Failed to adjust status count in Redis", e);
+        }
+    }
+
+    private void saveToRedis(DeliveryEntity delivery) {
+        try {
+            // 개별 배달 정보 저장
+            String redisKey = "delivery:" + delivery.getDeliveryId();
+            String redisValue = objectMapper.writeValueAsString(delivery);
+            redisTemplate.opsForValue().set(redisKey, redisValue);
+
+            log.info("Saved delivery information to Redis: {} -> {}", redisKey, redisValue);
+        } catch (Exception e) {
+            log.error("Error saving delivery information to Redis", e);
+        }
+    }
+
+
+    private void publishKafkaEvent(String eventType, DeliveryEntity delivery) {
+        try {
+            String payload = objectMapper.writeValueAsString(delivery);
+            kafkaTemplate.send("delivery-events", eventType, payload);
+            log.info("Published Kafka event: {} with payload: {}", eventType, payload);
+        } catch (Exception e) {
+            log.error("Error publishing Kafka event", e);
+        }
+    }
+
+    private boolean isValidStatusTransition(DeliveryStatus currentStatus, DeliveryStatus newStatus) {
+        return switch (currentStatus) {
+            case PENDING -> newStatus == DeliveryStatus.START || newStatus == DeliveryStatus.CANCELLED;
+            case START -> newStatus == DeliveryStatus.IN_PROGRESS || newStatus == DeliveryStatus.CANCELLED;
+            case IN_PROGRESS -> newStatus == DeliveryStatus.COMPLETED || newStatus == DeliveryStatus.CANCELLED;
+            default -> false; // COMPLETED 또는 CANCELLED 상태는 변경 불가
+        };
+    }
+
+    private void updateOutboxEvent(String eventType, Long orderId, String payload) {
+        OutboxEntity existingOutbox = outboxRepository.findByOrder_OrderID(orderId)
+                .orElseThrow(() -> new IllegalStateException("No Outbox event found for Order ID: " + orderId));
+
+        existingOutbox.updateEventType(eventType); // 이벤트 타입 변경
+        existingOutbox.updatePayload(payload); // 새로운 페이로드 저장
+        outboxRepository.save(existingOutbox); // 변경 사항 저장
+
+        log.info("Outbox event updated: EventType={}, OrderID={}", eventType, orderId);
+    }
+
+    private String createDeliveryPayload(DeliveryEntity delivery) {
+        try {
+            return objectMapper.writeValueAsString(Map.of(
+                    "deliveryId", delivery.getDeliveryId(),
+                    "orderId", delivery.getOrderId(),
+                    "status", delivery.getStatus().toString()
+            ));
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create delivery payload", e);
         }
     }
 }
-
 

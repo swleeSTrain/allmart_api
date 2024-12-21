@@ -10,11 +10,16 @@ spring:
 
     hikari:
       minimum-idle: 2
-      maximum-pool-size: 5
-      connection-timeout: 5000
+      maximum-pool-size: 10
+      connection-timeout: 10000
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
 
   jpa:
     hibernate:
+      connection.isolation: 2 # READ COMMITTED
       ddl-auto: update
       dialect: org.hibernate.dialect.MariaDB103Dialect
     show-sql: true
@@ -29,6 +34,36 @@ spring:
   config:
     import: optional:file:.env[.properties]
 
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS} # 환경 변수 사용
+    consumer:
+      group-id: delivery-service-group
+      auto-offset-reset: earliest
+      enable-auto-commit: true
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      properties:
+        fetch.max.bytes: 200000000 # 약 200MB
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      properties:
+        max.request.size: 200000000 # 약 200MB
+    admin:
+      fail-fast: true
+    properties:
+      max.poll.records: 500
+    topics:
+      dlq: vgdb.vgdb.tbl_outbox.dlq
+    streams:
+      application-id: delivery-stream-app
+      state-dir: /data/kafka-streams
+      properties:
+        commit.interval.ms: 100
+        statestore.cache.max.bytes: 10485760
+        replication.factor: 1
+        default.key.serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+        default.value.serde: org.apache.kafka.common.serialization.Serdes$StringSerde
 org:
   allmart_api:
     accessTime: 60

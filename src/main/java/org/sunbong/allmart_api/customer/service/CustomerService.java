@@ -51,11 +51,6 @@ public class CustomerService {
 
     private final JWTUtil jwtUtil;
 
-    public Optional<CustomerMartDTO> getMartInfo(String userData, CustomerLoginType loginType) {
-
-        return customerRepository.findMartInfo(userData, loginType);
-    }
-
     public Customer socialRegisterCustomer(CustomerSocialRegisterDTO customerRegisterDTO) {
         // 1. Customer 생성 및 저장
         Customer customer = Customer.builder()
@@ -233,6 +228,41 @@ public class CustomerService {
                 .build();
         Customer savedCustomer = customerRepository.save(customer);
         return Optional.of(savedCustomer);
+    }
+
+    public Customer registerCustomer(CustomerRegisterDTO customerRegisterDTO) {
+        // 1. Customer 생성 및 저장
+        Customer customer = Customer.builder()
+                .name(customerRegisterDTO.getName())
+                .phoneNumber(customerRegisterDTO.getPhoneNumber())
+                .loginType(CustomerLoginType.PHONE) // 로그인 타입 설정
+                .build();
+        Customer savedCustomer = customerRepository.save(customer);
+
+        log.info("Customer saved: {}", savedCustomer);
+
+        // 2. Address 생성 및 저장
+        AddressDTO addressDTO = AddressDTO.builder()
+                .postcode(customerRegisterDTO.getPostcode())
+                .roadAddress(customerRegisterDTO.getRoadAddress())
+                .detailAddress(customerRegisterDTO.getDetailAddress())
+                .fullAddress(customerRegisterDTO.getRoadAddress() + " " + customerRegisterDTO.getDetailAddress())
+                .build();
+        addressService.saveAddress(addressDTO, savedCustomer);
+
+        log.info("Address saved for Customer: {}", savedCustomer.getCustomerID());
+
+        Mart mart = martRepository.findById(customerRegisterDTO.getMartID())
+                .orElseThrow(() -> new IllegalArgumentException("Invalid Mart ID: " + customerRegisterDTO.getMartID()));
+
+        MartCustomer martCustomer = MartCustomer.builder()
+                .mart(mart)
+                .customer(savedCustomer)
+                .build();
+        martCustomerRepository.save(martCustomer);
+
+        // 4. 저장된 Customer 반환
+        return savedCustomer;
     }
 
 
