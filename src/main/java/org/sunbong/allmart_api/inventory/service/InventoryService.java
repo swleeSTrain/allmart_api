@@ -28,79 +28,22 @@ public class InventoryService {
         return inventoryRepository.searchInventory(pageRequestDTO);
     }
 
+    // 수정
+    public Long update(Long id, InventoryListDTO dto) throws Exception {
+        // 재고 ID로 재고를 조회, 없으면 예외 발생
+        Inventory inventory = inventoryRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid inventory ID"));
 
-//    /**
-//     * 검색 및 페이징 처리된 재고 리스트 반환
-//     */
-//    public PageResponseDTO<InventoryDTO> searchInventory(PageRequestDTO pageRequestDTO) {
-//        return inventoryRepository.searchInventory(pageRequestDTO);
-//    }
-//
-//    /**
-//     * 전체 재고 리스트 반환 (페이징 없이)
-//     */
-//    public List<InventoryDTO> getAllInventories() {
-//        return inventoryRepository.findAll().stream()
-//                .map(this::convertToDTO)
-//                .collect(Collectors.toList());
-//    }
-//
-//    /**
-//     * ID로 특정 재고 조회
-//     */
-//    public Optional<InventoryDTO> getInventoryById(Long id) {
-//        return inventoryRepository.findById(id).map(this::convertToDTO);
-//    }
+        // DTO의 데이터를 업데이트
+        inventory = inventory.toBuilder()
+                .quantity(dto.getQuantity())
+                .build();
 
-//    /**
-//     * 새로운 재고 생성
-//     */
-//    public Long createInventory(InventoryDTO inventoryDTO) {
-//        Inventory inventory = convertToEntity(inventoryDTO);
-//        inventory = inventoryRepository.save(inventory);
-//        return inventory.getInventoryID();
-//    }
-//
-//    /**
-//     * 재고 수정
-//     */
-//    public InventoryDTO updateInventory(Long id, InventoryDTO inventoryDTO) {
-//        Inventory inventory = inventoryRepository.findById(id)
-//                .orElseThrow(() -> new RuntimeException("Inventory not found"));
-//
-//        // 기존 엔티티를 기반으로 새로운 객체 생성
-//        Inventory updatedInventory = inventory.toBuilder()
-//                .sku(inventoryDTO.getSku())
-//                .quantity(inventoryDTO.getQuantity())
-//                .inStock(inventoryDTO.getInStock())
-//                .build();
-//
-//        // 수정된 객체 저장
-//        inventoryRepository.save(updatedInventory);
-//        return convertToDTO(updatedInventory);
-//    }
-//
-//    /**
-//     * 재고 삭제
-//     */
-//    public void deleteInventory(Long id) {
-//        inventoryRepository.deleteById(id);
-//    }
-//
-//    private InventoryDTO convertToDTO(Inventory inventory) {
-//        return InventoryDTO.builder()
-//                .inventoryID(inventory.getInventoryID())
-//                .sku(inventory.getSku())
-//                .quantity(inventory.getQuantity())
-//                .inStock(inventory.getInStock())
-//                .build();
-//    }
-//
-//    private Inventory convertToEntity(InventoryDTO inventoryDTO) {
-//        return Inventory.builder()
-//                .sku(inventoryDTO.getSku())
-//                .quantity(inventoryDTO.getQuantity())
-//                .inStock(inventoryDTO.getInStock())
-//                .build();
-//    }
+        // 업데이트된 데이터를 저장
+        Inventory updatedInventory = inventoryRepository.save(inventory);
+
+        // 저장된 재고 ID 반환
+        return updatedInventory.getInventoryID();
+    }
+
 }
