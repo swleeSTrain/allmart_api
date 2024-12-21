@@ -14,8 +14,8 @@ spring:
       connection-timeout: 10000
   data:
     redis:
-      host: redis # Redis 컨테이너 이름
-      port: 6379  # Redis 기본 포트
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
 
   jpa:
     hibernate:
