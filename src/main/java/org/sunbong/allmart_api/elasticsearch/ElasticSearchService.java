@@ -24,7 +24,7 @@ public class ElasticSearchService {
 
     // 상품 검색
     public List<String> getSKUsFromQuery(String keyword) {
-        String url = "http://127.0.0.1:8000/search?query=" + keyword;
+        String url = "https://allmartsystem.shop/fapi/search?query=" + keyword;
 
         log.info("====================================");
         log.info(url);
@@ -47,7 +47,7 @@ public class ElasticSearchService {
 
     // 상품 인덱싱(저장)
     public void indexProduct(String name, String sku) {
-        String url = "http://127.0.0.1:8000/index"; // FastAPI 서버 URL
+        String url = "https://allmartsystem.shop/fapi/index"; // FastAPI 서버 URL
 
         // 요청 데이터 구성
         Map<String, String> requestBody = new HashMap<>();
