@@ -8,7 +8,11 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.endpoint.DefaultAuthorizationCodeTokenResponseClient;
+import org.springframework.security.oauth2.client.endpoint.OAuth2AccessTokenResponseClient;
+import org.springframework.security.oauth2.client.endpoint.OAuth2AuthorizationCodeGrantRequest;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -17,6 +21,7 @@ import org.sunbong.allmart_api.security.filter.JWTCheckFilter;
 import org.sunbong.allmart_api.security.util.JWTUtil;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.sunbong.allmart_api.social.service.CustomOAuth2UserService;
 
 import java.util.List;
 
@@ -27,7 +32,7 @@ public class CustomSecurityConfig implements WebMvcConfigurer {
 
     private final JWTUtil jwtUtil;
 
-
+    private final AuthenticationFailureHandler customAuthenticationFailureHandler;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -35,7 +40,7 @@ public class CustomSecurityConfig implements WebMvcConfigurer {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http, CustomOAuth2UserService customOAuth2UserService) throws Exception {
 
         http.formLogin(config -> config.disable());
 
@@ -55,7 +60,30 @@ public class CustomSecurityConfig implements WebMvcConfigurer {
 //                .anyRequest().authenticated()
 //        );
 
+        // 카카오톡 로그인 엔드포인트 설정
+        http.oauth2Login(oauth2 -> oauth2
+                .loginPage("http://localhost:5173/customer/signin") // 사용자 정의 로그인 페이지 설정 (필요하면 변경)"
+                .successHandler((request, response, authentication) -> {
+                    // 인증 성공 시 React로 리디렉션
+                    String redirectUrl = "http://localhost:5173/oauth/kakao";
+                    response.sendRedirect(redirectUrl);
+                })
+                .failureHandler(customAuthenticationFailureHandler)
+                .authorizationEndpoint(auth -> auth
+                        .baseUri("/oauth2/authorization")) // 기본 OAuth2 인증 URL
+                .tokenEndpoint(token -> token
+                        .accessTokenResponseClient(customAccessTokenResponseClient  ())) // Access Token 처리
+                .userInfoEndpoint(userInfo  -> userInfo
+                        .userService(customOAuth2UserService) // 사용자 정보 처리 서비스
+
+                ));
+
         return http.build();
+    }
+
+    @Bean
+    public OAuth2AccessTokenResponseClient<OAuth2AuthorizationCodeGrantRequest> customAccessTokenResponseClient() {
+        return new DefaultAuthorizationCodeTokenResponseClient();
     }
 
     @Bean

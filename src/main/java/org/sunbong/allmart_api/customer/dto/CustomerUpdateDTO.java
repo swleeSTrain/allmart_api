@@ -13,10 +13,10 @@ import lombok.NoArgsConstructor;
 @Builder
 public class CustomerUpdateDTO {
 
+    Long CustomerID;
     String name;
-
-    @NotNull(message = "Phone number cannot be null")
     String phoneNumber;
+    String email;
 
 
 }

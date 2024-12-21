@@ -2,6 +2,7 @@ package org.sunbong.allmart_api.customer.controller;
 
 
 import io.jsonwebtoken.ExpiredJwtException;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Value;
@@ -11,8 +12,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.sunbong.allmart_api.address.dto.AddressDTO;
 import org.sunbong.allmart_api.customer.domain.Customer;
 import org.sunbong.allmart_api.customer.domain.CustomerLoginType;
 import org.sunbong.allmart_api.customer.dto.*;
@@ -21,6 +24,8 @@ import org.sunbong.allmart_api.customer.dto.CustomerListDTO;
 import org.sunbong.allmart_api.customer.dto.CustomerRegisterDTO;
 import org.sunbong.allmart_api.customer.dto.CustomerRequestDTO;
 import org.sunbong.allmart_api.customer.service.CustomerService;
+import org.sunbong.allmart_api.mart.domain.Mart;
+import org.sunbong.allmart_api.mart.domain.MartCustomer;
 import org.sunbong.allmart_api.security.util.JWTUtil;
 
 import java.util.HashMap;
@@ -46,6 +51,77 @@ public class CustomerController {
 
     @Value("${org.allmart_api.alwaysNew}")
     private boolean alwaysNew;
+
+    @PostMapping("/makeToken")
+    public ResponseEntity<CustomerTokenResponseDTO> makeToken(@RequestBody @Validated CustomerTokenRequestDTO tokenRequestDTO) {
+
+        log.info("Making token");
+        log.info("------------------------");
+
+        String userData = (tokenRequestDTO.getLoginType() == CustomerLoginType.PHONE ? tokenRequestDTO.getPhoneNumber() : tokenRequestDTO.getEmail());
+        CustomerResponseDTO customerDTO = customerService.authenticate(
+                userData, tokenRequestDTO.getLoginType());
+
+        log.info(customerDTO);
+
+        Map<String, Object> claimMap;
+
+        if (tokenRequestDTO.getLoginType() == CustomerLoginType.SOCIAL) {
+            claimMap = Map.of(
+                    "email", customerDTO.getEmail());
+
+        } else {
+            claimMap = Map.of(
+                    "phoneNumber", customerDTO.getPhoneNumber());
+        }
+
+        String accesToken = jWTUtil.createToken(claimMap, accessTime);
+        String refreshToken = jWTUtil.createToken(claimMap, refreshTime);
+
+        CustomerTokenResponseDTO tokenResponseDTO = CustomerTokenResponseDTO.builder()
+                .accessToken(accesToken)
+                .refreshToken(refreshToken)
+                .email(customerDTO.getEmail())
+                .phoneNumber(customerDTO.getPhoneNumber())
+                .build();
+
+        return ResponseEntity.ok(tokenResponseDTO);
+    }
+
+    @PutMapping("/update")
+    public ResponseEntity<CustomerTokenResponseDTO> update(@Valid @RequestBody CustomerUpdateDTO customerUpdateDTO, BindingResult bindingResult) {
+        if(bindingResult.hasErrors()) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+        Optional<Customer> customer = customerService.update(customerUpdateDTO);
+
+        // 새로운 Access Token 및 Refresh Token 생성
+        Map<String, Object> claimMap = new HashMap<>();
+        if (customerUpdateDTO.getEmail() != null) claimMap.put("email", customerUpdateDTO.getEmail());
+        if (customerUpdateDTO.getPhoneNumber() != null) claimMap.put("phoneNumber", customerUpdateDTO.getPhoneNumber());
+
+        String newAccessToken = jWTUtil.createToken(claimMap, accessTime);
+        String newRefreshToken = jWTUtil.createToken(claimMap, refreshTime);
+
+        CustomerTokenResponseDTO tokenResponseDTO = CustomerTokenResponseDTO.builder()
+                .customerId(customerUpdateDTO.getCustomerID())
+                .accessToken(newAccessToken)
+                .refreshToken(newRefreshToken)
+                .phoneNumber(customerUpdateDTO.getPhoneNumber() != null ? customerUpdateDTO.getPhoneNumber() : "N/A")
+                .email(customerUpdateDTO.getEmail() != null ? customerUpdateDTO.getEmail() : "N/A")
+                .customerId(customerUpdateDTO.getCustomerID())
+                .build();
+
+        return ResponseEntity.ok(tokenResponseDTO);
+
+    }
+
+    @GetMapping("/update/{customerID}")
+    public ResponseEntity<CustomerResponseDTO> getCustomer(@PathVariable(name = "customerID") Long customerID) {
+        CustomerResponseDTO customer = customerService.getCustomer(customerID);
+        return ResponseEntity.ok(customer);
+    }
+
 
     // 새로운 고객 및 주소 등록 로직
     @PostMapping("/signup")
