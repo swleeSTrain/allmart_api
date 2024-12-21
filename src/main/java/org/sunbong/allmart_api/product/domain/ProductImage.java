@@ -14,7 +14,7 @@ import lombok.ToString;
 @Getter
 public class ProductImage {
 
-    @Column(length = 255)
+    @Column(length = 1000)
     private String imageURL;
 
     private int ord;

@@ -1,0 +1,76 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches:
+      - dev_master  # main 브랜치에 푸시될 때 실행
+
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. 코드 체크아웃
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # 2. JDK 설치
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'corretto'
+
+      # 3. Gradle 빌드 (테스트 건너뛰기)
+      - name: Build with Gradle
+        run: |
+          chmod +x ./gradlew
+          ./gradlew clean build -x test
+
+      # 4. 빌드된 JAR 파일 이름 추출
+      - name: Get JAR file name
+        id: get_jar_file
+        run: |
+          JAR_FILE=$(find ./build/libs -maxdepth 1 -name "*.jar" -print -quit)
+          echo "JAR_FILE=$JAR_FILE"
+          echo "JAR_FILE=$JAR_FILE" >> $GITHUB_ENV # 변경된 부분
+
+      # 5. EC2 서버에 배포 (SSH)
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v0.1.8
+        with:
+          host: ${{ secrets.EC2_HOST }}       # EC2 퍼블릭 IP 또는 도메인
+          username: ec2-user   # EC2 사용자 이름 (예: ec2-user, ubuntu 등)
+          key: ${{ secrets.EC2_PRIVATE_KEY }}     # SSH 개인 키 (GitHub Secrets에 저장)
+          port: 22                            # 기본 SSH 포트
+          script: |
+            APP_DIR=~/app
+            JAR_FILE_NAME=$(basename ${{ env.JAR_FILE }})
+            
+            # 애플리케이션 디렉토리로 이동 또는 생성
+            mkdir -p $APP_DIR
+            cd $APP_DIR
+
+            # 기존 애플리케이션 종료
+            pkill -f 'java -jar' || true
+
+            # 기존 파일 제거
+            rm -rf *
+
+             # .env 파일 생성 (GitHub Secrets에서 값 가져오기)
+            echo "AWS_ACCESS_KEY=${{ secrets.AWS_ACCESS_KEY }}" > .env
+            echo "AWS_REGION=${{ secrets.AWS_REGION }}" >> .env
+            echo "AWS_S3_BUCKET=${{ secrets.AWS_S3_BUCKET }}" >> .env
+            echo "AWS_SECRET_KEY=${{ secrets.AWS_SECRET_KEY }}" >> .env
+            echo "AWS_SERVICE_ENDPOINT=${{ secrets.AWS_SERVICE_ENDPOINT }}" >> .env
+            echo "DATABASE_PASSWORD=${{ secrets.DATABASE_PASSWORD}}" >> .env
+            echo "DATABASE_URL=${{ secrets.DATABASE_URL}}" >> .env
+            echo "DATABASE_USERNAME=${{ secrets.DATABASE_USERNAME}}" >> .env
+            echo "KAKAO_GEO_API_KEY=${{ secrets.KAKAO_GEO_API_KEY}}" >> .env
+            echo "KAKAO_MAP_API_KEY=${{ secrets.KAKAO_MAP_API_KEY}}" >> .env
+            echo "TOSS_SECRET_KEY=${{ secrets.TOSS_SECRET_KEY}}" >> .env
+
+            # GitHub Actions에서 빌드된 JAR 파일 업로드 및 실행
+            scp -i ~/.ssh/id_rsa ${{ env.JAR_FILE }} $APP_DIR/
+            nohup java -jar $JAR_FILE_NAME > app.log 2>&1 &

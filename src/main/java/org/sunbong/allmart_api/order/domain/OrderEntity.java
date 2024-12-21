@@ -8,7 +8,6 @@ import org.sunbong.allmart_api.delivery.domain.DeliveryEntity;
 
 import java.math.BigDecimal;
 
-
 @Entity
 @AllArgsConstructor
 @NoArgsConstructor

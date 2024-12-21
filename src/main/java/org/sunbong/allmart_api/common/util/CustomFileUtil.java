@@ -1,132 +1,137 @@
 package org.sunbong.allmart_api.common.util;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
 
+import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.CannedAccessControlList;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PutObjectRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
-
-import net.coobird.thumbnailator.Thumbnails;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
-import jakarta.annotation.PostConstruct;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+import net.coobird.thumbnailator.Thumbnails;
 
 @Component
 @Log4j2
 @RequiredArgsConstructor
 public class CustomFileUtil {
 
-    @Value("${org.allmart_api.upload.path}")
-    private String uploadPath;
+    private final AmazonS3Client amazonS3Client;
 
-    @PostConstruct
-    public void init() {
-        File tempFolder = new File(uploadPath);
+    @Value("${cloud.aws.s3.bucket}")
+    private String bucket;
 
-        if(tempFolder.exists() == false) {
-            tempFolder.mkdir();
-        }
+    private static final String FILES_PREFIX = "files/";
+    private static final String QR_PREFIX = "qr/";
 
-        uploadPath = tempFolder.getAbsolutePath();
-
-        log.info("-------------------------------------");
-        log.info(uploadPath);
-    }
-
-    public List<String> saveFiles(List<MultipartFile> files)throws RuntimeException{
-
-        if(files == null || files.size() == 0){
+    public List<String> saveFiles(List<MultipartFile> files) throws RuntimeException {
+        if (files == null || files.isEmpty()) {
             return List.of();
         }
 
-        List<String> uploadNames = new ArrayList<>();
+        List<String> uploadUrls = new ArrayList<>();
 
         for (MultipartFile multipartFile : files) {
-
             String savedName = UUID.randomUUID().toString() + "_" + multipartFile.getOriginalFilename();
+            String fullPath = FILES_PREFIX + savedName;
 
-            Path savePath = Paths.get(uploadPath, savedName);
-//            log.info("실제 경로 : " + savePath);
             try {
-                Files.copy(multipartFile.getInputStream(), savePath);
+                ObjectMetadata metadata = new ObjectMetadata();
+                metadata.setContentType(multipartFile.getContentType());
+                metadata.setContentLength(multipartFile.getSize());
+
+                amazonS3Client.putObject(new PutObjectRequest(bucket, fullPath, multipartFile.getInputStream(), metadata)
+                        .withCannedAcl(CannedAccessControlList.PublicRead));
+
+                String fileUrl = getFileUrl(savedName);
+                uploadUrls.add(fileUrl);
 
                 String contentType = multipartFile.getContentType();
+                if (contentType != null && contentType.startsWith("image")) {
+                    ByteArrayOutputStream thumbnailOutput = new ByteArrayOutputStream();
+                    Thumbnails.of(multipartFile.getInputStream())
+                            .size(400, 400)
+                            .toOutputStream(thumbnailOutput);
 
-                log.info("-------------------------");
-                log.info("contentType : " + contentType);
-                log.info("-------------------------");
+                    byte[] thumbnailBytes = thumbnailOutput.toByteArray();
+                    InputStream thumbnailInput = new ByteArrayInputStream(thumbnailBytes);
 
-                if(contentType != null && contentType.startsWith("image")){ //이미지여부 확인
+                    ObjectMetadata thumbnailMetadata = new ObjectMetadata();
+                    thumbnailMetadata.setContentType(contentType);
+                    thumbnailMetadata.setContentLength(thumbnailBytes.length);
 
-                    Path thumbnailPath = Paths.get(uploadPath, "s_"+savedName);
+                    String thumbnailPath = FILES_PREFIX + "s_" + savedName;
+                    amazonS3Client.putObject(new PutObjectRequest(bucket, thumbnailPath, thumbnailInput, thumbnailMetadata)
+                            .withCannedAcl(CannedAccessControlList.PublicRead));
 
-                    Thumbnails.of(savePath.toFile())
-                            .size(400,400)
-                            .toFile(thumbnailPath.toFile());
+                    String thumbnailUrl = getFileUrl("s_" + savedName);
+                    uploadUrls.add(thumbnailUrl);
                 }
 
-                uploadNames.add(savedName);
             } catch (IOException e) {
                 throw new RuntimeException(e.getMessage());
             }
-        }//end for
-        return uploadNames;
+        }
+        return uploadUrls;
     }
 
     public ResponseEntity<Resource> getFile(String fileName) {
+        try {
+            com.amazonaws.services.s3.model.S3Object s3Object = amazonS3Client.getObject(bucket, fileName);
+            InputStream inputStream = s3Object.getObjectContent();
+            Resource resource = new InputStreamResource(inputStream);
 
-        Resource resource = new FileSystemResource(uploadPath+ File.separator + fileName);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.parseMediaType(s3Object.getObjectMetadata().getContentType()));
 
-        if(!resource.exists()) {
-
-            resource = new FileSystemResource(uploadPath+ File.separator + "default.png");
-
+            return ResponseEntity.ok().headers(headers).body(resource);
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
         }
-
-        HttpHeaders headers = new HttpHeaders();
-
-        try{
-            headers.add("Content-Type", Files.probeContentType( resource.getFile().toPath() ));
-        } catch(Exception e){
-            return ResponseEntity.internalServerError().build();
-        }
-        return ResponseEntity.ok().headers(headers).body(resource);
     }
 
-
     public void deleteFiles(List<String> fileNames) {
-
-        if(fileNames == null || fileNames.size() == 0){
+        if (fileNames == null || fileNames.size() == 0) {
             return;
         }
 
         fileNames.forEach(fileName -> {
-
-            //썸네일이 있는지 확인하고 삭제
-            String thumbnailFileName = "s_" + fileName;
-            Path thumbnailPath = Paths.get(uploadPath, thumbnailFileName);
-            Path filePath = Paths.get(uploadPath, fileName);
-
-            try {
-                Files.deleteIfExists(filePath);
-                Files.deleteIfExists(thumbnailPath);
-            } catch (IOException e) {
-                throw new RuntimeException(e.getMessage());
-            }
+            amazonS3Client.deleteObject(bucket, fileName);
+            amazonS3Client.deleteObject(bucket, "s_" + fileName);
         });
     }
+    //QR코드 저장
+    public void saveFilesToS3(String fileName, InputStream inputStream, long contentLength, String contentType) {
+        try {
+            ObjectMetadata metadata = new ObjectMetadata();
+            metadata.setContentType(contentType);
+            metadata.setContentLength(contentLength);
 
+            amazonS3Client.putObject(new PutObjectRequest(bucket, QR_PREFIX+fileName, inputStream, metadata)
+                    .withCannedAcl(CannedAccessControlList.PublicRead));
+        } catch (Exception e) {
+            throw new RuntimeException("S3 업로드 실패: " + e.getMessage(), e);
+        }
+    }
 
-
+    public String getFileUrl(String fileName) {
+        return amazonS3Client.getUrl(bucket, FILES_PREFIX + fileName).toString();
+    }
+    public String getQrUrl(String fileName) {
+        return amazonS3Client.getUrl(bucket, QR_PREFIX + fileName).toString();
+    }
 }

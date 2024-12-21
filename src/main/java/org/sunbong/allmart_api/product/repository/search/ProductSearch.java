@@ -9,7 +9,7 @@ import java.util.List;
 
 public interface ProductSearch {
 
-    PageResponseDTO<ProductListDTO> searchBySKU(List<String> skuList, PageRequestDTO pageRequestDTO);
+    PageResponseDTO<ProductListDTO> searchBySKU(Long martID, List<String> skuList, PageRequestDTO pageRequestDTO);
 
     PageResponseDTO<ProductListDTO> list(Long martID, PageRequestDTO pageRequestDTO);
 
