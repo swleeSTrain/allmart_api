@@ -1,4 +1,4 @@
-
+package org.sunbong.allmart_api.customer.repository.search;
 // bean 문제 때문에 주석 처리함 제대로 못잡음
 
 //    package org.sunbong.allmart_api.customer.repository.search;

@@ -5,11 +5,12 @@ import org.sunbong.allmart_api.common.dto.PageResponseDTO;
 import org.sunbong.allmart_api.order.domain.OrderEntity;
 import org.sunbong.allmart_api.order.domain.OrderStatus;
 import org.sunbong.allmart_api.order.dto.OrderDTO;
+import org.sunbong.allmart_api.order.dto.OrderItemDTO;
 import org.sunbong.allmart_api.order.dto.OrderListDTO;
+import org.sunbong.allmart_api.order.dto.TemporaryOrderDTO;
+import org.sunbong.allmart_api.tosspay.dto.TossPaymentRequestDTO;
 
-import java.math.BigDecimal;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public interface OrderService {
 
@@ -17,9 +18,17 @@ public interface OrderService {
 
     PageResponseDTO<OrderListDTO> searchOrders(OrderStatus status, String customerId, PageRequestDTO pageRequestDTO);
 
-    void changeOrderStatus(Long orderId, OrderStatus newStatus); // 주문 상태 변경 메서드
-
-    OrderDTO createOrderFromVoice(String name, int quantity, String userId);
+//    void changeOrderStatus(Long orderId, OrderStatus newStatus); // 주문 상태 변경 메서드
 
     List<OrderDTO> getCustomerCompletedOrders(String customerId);
+
+    TemporaryOrderDTO createOrderFromVoice(String name, int quantity, String userId);
+
+    List<OrderDTO> processUnprocessedTemporaryOrders();
+
+    void completeOrder(Long orderId);
+
+    void deleteOrder(Long tempOrderId);
+
+    OrderEntity createOrder(TossPaymentRequestDTO paymentDTO, List<OrderItemDTO> orderItems);
 }
