@@ -8,14 +8,16 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.sunbong.allmart_api.common.dto.PageRequestDTO;
 import org.sunbong.allmart_api.common.dto.PageResponseDTO;
+import org.sunbong.allmart_api.order.domain.OrderEntity;
 import org.sunbong.allmart_api.order.domain.OrderStatus;
-import org.sunbong.allmart_api.order.dto.NaverChatbotOrderDTO;
-import org.sunbong.allmart_api.order.dto.OrderDTO;
-import org.sunbong.allmart_api.order.dto.OrderListDTO;
-import org.sunbong.allmart_api.order.dto.TemporaryOrderDTO;
+import org.sunbong.allmart_api.order.domain.TemporaryOrderStatus;
+import org.sunbong.allmart_api.order.dto.*;
+import org.sunbong.allmart_api.order.repository.TemporaryOrderRepository;
 import org.sunbong.allmart_api.order.service.OrderService;
+import org.sunbong.allmart_api.order.domain.TemporaryOrderEntity;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/orders")
@@ -25,6 +27,7 @@ import java.util.List;
 public class OrderController {
 
     private final OrderService orderService;
+    private final TemporaryOrderRepository temporaryOrderRepository;
 
     // 주문 상세 조회
     @GetMapping("/{orderId}")
@@ -91,5 +94,12 @@ public class OrderController {
     public ResponseEntity<List<OrderDTO>> getCompletedOrdersByCustomer(@PathVariable String customerId) {
         List<OrderDTO> completedOrders = orderService.getCustomerCompletedOrders(customerId);
         return ResponseEntity.ok(completedOrders);
+    }
+
+
+    @PostMapping("/create")
+    public ResponseEntity<?> createOrder(@RequestBody OrderCreateRequest request) {
+        OrderEntity order = orderService.createOrder(request.getPaymentDTO(), request.getOrderItems());
+        return ResponseEntity.ok(order);
     }
 }

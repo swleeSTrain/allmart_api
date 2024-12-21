@@ -21,12 +21,10 @@ import org.sunbong.allmart_api.outbox.repository.OutboxRepository;
 import org.sunbong.allmart_api.product.domain.Product;
 import org.sunbong.allmart_api.product.exception.ProductNotFoundException;
 import org.sunbong.allmart_api.product.repository.ProductRepository;
+import org.sunbong.allmart_api.tosspay.dto.TossPaymentRequestDTO;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -266,5 +264,45 @@ public class OrderServiceImpl implements OrderService {
         outboxRepository.save(existingOutbox); // 변경 사항 저장
 
         log.info("Outbox event updated: EventType={}, OrderID={}", newEventType, orderId);
+    }
+
+    @Override
+    public void deleteOrder(Long tempOrderId) {
+        if (!temporaryOrderRepository.existsById(tempOrderId)) {
+            throw new IllegalArgumentException("주문을 찾을 수 없습니다. ID: " + tempOrderId);
+        }
+        temporaryOrderRepository.deleteById(tempOrderId);
+    }
+
+    @Override
+    public OrderEntity createOrder(TossPaymentRequestDTO paymentDTO, List<OrderItemDTO> orderItems) {
+        // 1. OrderEntity 생성
+        OrderEntity order = OrderEntity.builder()
+                .customerId(paymentDTO.getOrderId()) // 고객 ID를 주문 ID로 설정
+                .totalAmount(BigDecimal.valueOf(Long.parseLong(paymentDTO.getAmount())))
+                .status(OrderStatus.PENDING)
+                .paymentType(PaymentType.ONLINE) // 무조건 온라인 결제
+                .build();
+
+        // 2. OrderItem 생성 및 Order 연결
+        List<OrderItem> items = orderItems.stream().map(itemDTO -> {
+            Product product = productRepository.findById(itemDTO.getProductId())
+                    .orElseThrow(() -> new IllegalArgumentException("Product not found"));
+
+            return OrderItem.builder()
+                    .order(order)
+                    .product(product)
+                    .quantity(itemDTO.getQuantity())
+                    .unitPrice(itemDTO.getUnitPrice())
+                    .build();
+        }).collect(Collectors.toList());
+
+
+        orderRepository.save(order);
+
+        orderItemRepository.saveAll(items);
+
+        saveOutboxEvent("ORDER_CREATED", order, createOrderPayload(order));
+        return order;
     }
 }

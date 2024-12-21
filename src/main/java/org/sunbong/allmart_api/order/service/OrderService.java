@@ -2,10 +2,13 @@ package org.sunbong.allmart_api.order.service;
 
 import org.sunbong.allmart_api.common.dto.PageRequestDTO;
 import org.sunbong.allmart_api.common.dto.PageResponseDTO;
+import org.sunbong.allmart_api.order.domain.OrderEntity;
 import org.sunbong.allmart_api.order.domain.OrderStatus;
 import org.sunbong.allmart_api.order.dto.OrderDTO;
+import org.sunbong.allmart_api.order.dto.OrderItemDTO;
 import org.sunbong.allmart_api.order.dto.OrderListDTO;
 import org.sunbong.allmart_api.order.dto.TemporaryOrderDTO;
+import org.sunbong.allmart_api.tosspay.dto.TossPaymentRequestDTO;
 
 import java.util.List;
 
@@ -24,4 +27,8 @@ public interface OrderService {
     List<OrderDTO> processUnprocessedTemporaryOrders();
 
     void completeOrder(Long orderId);
+
+    void deleteOrder(Long tempOrderId);
+
+    OrderEntity createOrder(TossPaymentRequestDTO paymentDTO, List<OrderItemDTO> orderItems);
 }

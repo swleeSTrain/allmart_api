@@ -12,8 +12,8 @@ spring:
       connection-timeout: 10000
   data:
     redis:
-      host: 127.0.0.1 # Redis 컨테이너가 실행 중인 호스트
-      port: 6379      # Redis 기본 포트
+      host: redis # Redis 컨테이너 이름
+      port: 6379  # Redis 기본 포트
 
   jpa:
     hibernate:
@@ -29,12 +29,12 @@ spring:
     multipart:
       max-file-size: 5MB
       max-request-size: 20MB
-      location: ${org.allmart_api.upload.path}  # 업로드 경로를 org.sunbong.upload.path와 연동
+      location: ${org.allmart_api.upload.path}  # 업로드 경로 설정
   config:
     import: optional:file:.env[.properties]
 
   kafka:
-    bootstrap-servers: localhost:10000,localhost:10001,localhost:10002
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS} # 환경 변수 사용
     consumer:
       group-id: delivery-service-group
       auto-offset-reset: earliest
@@ -53,7 +53,7 @@ spring:
     properties:
       max.poll.records: 500
     topics:
-      dlq: jindb.jindb.tbl_outbox.dlq
+      dlq: vgdb.vgdb.tbl_outbox.dlq
     streams:
       application-id: delivery-stream-app
       state-dir: /data/kafka-streams
@@ -76,13 +76,8 @@ logging:
     org:
       hibernate:
         SQL: INFO
-        type:
-          descriptor:
-            sql:
-              BasicBinder:
 kakao:
   KAKAO_MAP_API_KEY: ${KAKAO_MAP_API_KEY}
   KAKAO_GEO_API_KEY: ${KAKAO_GEO_API_KEY}
 toss:
   SECRET_KEY: ${TOSS_SECRET_KEY}
-

@@ -22,7 +22,7 @@ public class OutboxEventListener {
     /**
      * Debezium Kafka 메시지 처리
      */
-    @KafkaListener(topics = "jindb.jindb.tbl_outbox", groupId = "delivery-service", concurrency = "1")
+    @KafkaListener(topics = "vgdb.vgdb.tbl_outbox", groupId = "delivery-service", concurrency = "1")
     public void handleOutboxEvent(String message) {
         try {
             JsonNode root = objectMapper.readTree(message);

@@ -9,7 +9,7 @@ import org.sunbong.allmart_api.tosspay.service.TossPaymentService;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/toss-payments")
+@RequestMapping("/api/v1/orders/toss-payments")
 public class TossPaymentController {
 
     private final TossPaymentService tossPaymentService;

@@ -80,6 +80,23 @@ public class DeliveryService {
         saveToRedis(delivery);
 
         log.info("Delivery status updated: Delivery ID={}, Old Status={}, New Status={}", deliveryId, oldStatus, newStatus);
+
+        // "배달 시작" 상태일 경우, 바로 "배달 중" 상태로 전환
+        if (newStatus == DeliveryStatus.START) {
+            log.info("Immediately transitioning Delivery ID={} to IN_PROGRESS", deliveryId);
+
+            // 즉시 "배달 중" 상태로 변경
+            delivery.updateStatus(DeliveryStatus.IN_PROGRESS);
+            deliveryRepository.save(delivery);
+
+            // Redis 상태 카운트 재조정
+            adjustStatusCountInRedis(newStatus, DeliveryStatus.IN_PROGRESS);
+
+            // Redis에 개별 배달 정보 저장
+            saveToRedis(delivery);
+
+            log.info("Delivery ID={} transitioned to IN_PROGRESS", deliveryId);
+        }
     }
 
     private void adjustStatusCountInRedis(DeliveryStatus oldStatus, DeliveryStatus newStatus) {
